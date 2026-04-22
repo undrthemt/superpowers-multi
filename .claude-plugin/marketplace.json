@@ -7,7 +7,7 @@
   },
   "plugins": [
     {
-      "name": "superpowers",
+      "name": "superpowers-multi",
       "description": "Core skills library for Claude Code with multi-AI review support",
       "version": "5.0.8",
       "source": "./",
