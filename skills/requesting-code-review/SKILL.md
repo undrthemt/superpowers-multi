@@ -53,7 +53,7 @@ If all sections are present, proceed to step 5.
 
 **4. Claude fallback:**
 
-If the preflight check fails, Codex returns an error, or the response is missing required sections — dispatch existing `superpowers:code-reviewer` subagent using the template at `code-reviewer.md` with the same placeholders.
+If the preflight check fails, Codex returns an error, or the response is missing required sections — dispatch existing `superpowers:code-reviewer` subagent using the template at `code-reviewer.md` with the same placeholders. (Note: `code-reviewer.md` uses `{PLAN_REFERENCE}` where this skill uses `{PLAN_OR_REQUIREMENTS}` — fill both with the plan/requirements content.)
 
 **5. Act on feedback:**
 - Fix Critical issues immediately
