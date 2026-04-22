@@ -14,6 +14,11 @@ Next up, once you say "go", it launches a *subagent-driven-development* process,
 
 There's a bunch more to it, but that's the core of the system. And because the skills trigger automatically, you don't need to do anything special. Your coding agent just has Superpowers.
 
+## Prerequisites
+
+Superpowers works out of the box with no additional dependencies. For enhanced code review capabilities:
+
+- **Codex Plugin (recommended):** When the [Codex plugin](https://github.com/openai/codex) for Claude Code is installed, code reviews are dispatched via Codex for an independent perspective. Without the plugin, reviews fall back to Claude subagents (fully functional).
 
 ## Sponsorship
 
