@@ -11,7 +11,7 @@ Load plan, review critically, execute all tasks, report when complete.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
 
-**Note:** Tell your human partner that Superpowers works much better with access to subagents. The quality of its work will be significantly higher if run on a platform with subagent support (such as Claude Code or Codex). If subagents are available, use superpowers:subagent-driven-development instead of this skill.
+**Note:** Tell your human partner that Superpowers works much better with access to subagents. The quality of its work will be significantly higher if run on a platform with subagent support (such as Claude Code or Codex). If subagents are available, use superpowers-multi:subagent-driven-development instead of this skill.
 
 ## The Process
 
@@ -29,13 +29,13 @@ For each task:
 3. Run verifications as specified
 4. Mark as completed
 
-**Review checkpoint:** After every 3 completed tasks (or after the final task if fewer than 3 remain), invoke `superpowers:requesting-code-review` to review the batch. Fix any Critical or Important issues before continuing to the next batch.
+**Review checkpoint:** After every 3 completed tasks (or after the final task if fewer than 3 remain), invoke `superpowers-multi:requesting-code-review` to review the batch. Fix any Critical or Important issues before continuing to the next batch.
 
 ### Step 3: Complete Development
 
 After all tasks complete and verified:
 - Announce: "I'm using the finishing-a-development-branch skill to complete this work."
-- **REQUIRED SUB-SKILL:** Use superpowers:finishing-a-development-branch
+- **REQUIRED SUB-SKILL:** Use superpowers-multi:finishing-a-development-branch
 - Follow that skill to verify tests, present options, execute choice
 
 ## When to Stop and Ask for Help
@@ -67,7 +67,7 @@ After all tasks complete and verified:
 ## Integration
 
 **Required workflow skills:**
-- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
-- **superpowers:writing-plans** - Creates the plan this skill executes
-- **superpowers:requesting-code-review** - Batch review every 3 tasks (Codex-first with Claude fallback)
-- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+- **superpowers-multi:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
+- **superpowers-multi:writing-plans** - Creates the plan this skill executes
+- **superpowers-multi:requesting-code-review** - Batch review every 3 tasks (Codex-first with Claude fallback)
+- **superpowers-multi:finishing-a-development-branch** - Complete development after all tasks

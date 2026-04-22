@@ -28,7 +28,7 @@ codex:codex-rescue subagent:
 **Step 3 — Claude fallback:**
 
 ```
-Task tool (superpowers:code-reviewer):
+Task tool (superpowers-multi:code-reviewer):
   Use template at requesting-code-review/code-reviewer.md
 
   WHAT_WAS_IMPLEMENTED: [from implementer's report]
