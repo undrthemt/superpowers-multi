@@ -1,42 +1,13 @@
-# Code Quality Reviewer Prompt Template
-
-Use this template when dispatching a code quality reviewer subagent.
+# Code Quality Reviewer Dispatch
 
 **Purpose:** Verify implementation is well-built (clean, tested, maintainable)
 
 **Only dispatch after spec compliance review passes.**
 
-## Dispatch Order: Codex First, Claude Fallback
-
-**Step 1 — Preflight:** Attempt to dispatch `codex:codex-rescue` subagent with a minimal probe (e.g., `echo ok`). If the Agent tool returns an error or the subagent type is not recognized, skip to Claude fallback.
-
-**Step 2 — Codex dispatch (primary):**
-
-```
-codex:codex-rescue subagent:
-  Use template at requesting-code-review/codex-review-prompt.md
-
-  WHAT_WAS_IMPLEMENTED: [from implementer's report]
-  PLAN_OR_REQUIREMENTS: Task N from [plan-file]
-  BASE_SHA: [commit before task]
-  HEAD_SHA: [current commit]
-  DESCRIPTION: [task summary]
-```
-
-**Validate response:** Must contain Strengths, Issues, and Assessment sections. If missing, fall back to Claude.
-
-**Step 3 — Claude fallback:**
-
-```
-Task tool (superpowers-multi:code-reviewer):
-  Use template at requesting-code-review/code-reviewer.md
-
-  WHAT_WAS_IMPLEMENTED: [from implementer's report]
-  PLAN_OR_REQUIREMENTS: Task N from [plan-file]
-  BASE_SHA: [commit before task]
-  HEAD_SHA: [current commit]
-  DESCRIPTION: [task summary]
-```
+For code quality review dispatch, read `skills/requesting-code-review/review-dispatch.md`
+and follow its instructions with:
+- review_type = code-quality
+- additional_checks = the "Additional Checks" block below
 
 ## Additional Checks (subagent-driven-development specific)
 
