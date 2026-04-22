@@ -31,7 +31,7 @@ HEAD_SHA=$(git rev-parse HEAD)
 
 **2. Preflight check:**
 
-Before dispatching, check whether the `codex:codex-rescue` subagent type is available via the Agent tool. If the subagent type is not recognized or unavailable, skip directly to step 4 (Claude fallback).
+Attempt to dispatch `codex:codex-rescue` subagent with a minimal probe (e.g., `echo ok`). If the Agent tool returns an error indicating the subagent type is not recognized or the dispatch fails, skip directly to step 4 (Claude fallback).
 
 **3. Dispatch Codex review (primary):**
 
@@ -45,7 +45,7 @@ Dispatch `codex:codex-rescue` subagent using the template at `codex-review-promp
 - `{DESCRIPTION}` - Brief summary
 
 **Validate the response:** The Codex review output must contain all three sections:
-- `### Strengths` or equivalent
+- `### Strengths`
 - `### Issues` with severity categorization
 - `### Assessment` with a merge verdict
 
