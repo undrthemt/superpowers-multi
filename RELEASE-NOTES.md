@@ -1,5 +1,15 @@
 # Superpowers Release Notes
 
+## v5.0.8 (2026-04-22)
+
+### Codex-First Code Review
+
+- **requesting-code-review** — reviews now dispatch via `codex:codex-rescue` subagent (Codex plugin) as the primary reviewer, with automatic fallback to Claude subagents when Codex is unavailable. Includes preflight capability check and response validation (Strengths/Issues/Assessment sections required).
+- **subagent-driven-development** — both stages of the two-stage review (spec compliance and code quality) and the final whole-implementation review now use Codex-first dispatch with Claude fallback. Final review uses dynamic `git merge-base` for stable diff boundaries across forks and worktrees.
+- **executing-plans** — added explicit batch review checkpoint every 3 tasks via `superpowers:requesting-code-review`, ensuring Codex-first reviews apply to this execution path as well.
+- **New templates** — added `codex-review-prompt.md` (code quality) and `codex-spec-reviewer-prompt.md` (spec compliance) for Codex-optimized review dispatch. Existing Claude templates retained as fallback.
+- **Prerequisite** — Codex plugin for Claude Code is recommended but not required. Without it, all reviews fall back to Claude subagents (existing behavior).
+
 ## v5.0.7 (2026-03-31)
 
 ### GitHub Copilot CLI Support
