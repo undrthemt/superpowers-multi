@@ -22,7 +22,7 @@ codex:codex-rescue subagent:
 
     ## Requirements/Plan
 
-    {PLAN_REFERENCE}
+    {PLAN_OR_REQUIREMENTS}
 
     ## Git Range to Review
 
