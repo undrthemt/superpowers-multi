@@ -44,7 +44,7 @@ In Claude Code, register the marketplace first:
 Then install the plugin from this marketplace:
 
 ```bash
-/plugin install superpowers@superpowers-multi
+/plugin install superpowers-multi@superpowers-multi
 ```
 
 ### OpenAI Codex CLI
@@ -94,7 +94,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/undrthemt/s
 
 ```bash
 copilot plugin marketplace add undrthemt/superpowers-multi
-copilot plugin install superpowers@superpowers-multi
+copilot plugin install superpowers-multi@superpowers-multi
 ```
 
 ### Gemini CLI

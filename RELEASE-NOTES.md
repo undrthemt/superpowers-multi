@@ -1047,7 +1047,7 @@ This release includes:
 ```bash
 # In Claude Code
 /plugin marketplace add obra/superpowers-marketplace
-/plugin install superpowers@superpowers-marketplace
+/plugin install superpowers-multi@superpowers-marketplace
 ```
 
 The plugin handles everything automatically.
