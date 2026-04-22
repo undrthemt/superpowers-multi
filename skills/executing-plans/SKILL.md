@@ -69,5 +69,5 @@ After all tasks complete and verified:
 **Required workflow skills:**
 - **superpowers-multi:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
 - **superpowers-multi:writing-plans** - Creates the plan this skill executes
-- **superpowers-multi:requesting-code-review** - Batch review every 3 tasks (Codex-first with Claude fallback)
+- **superpowers-multi:requesting-code-review** - Batch review every 3 tasks (configurable external provider with host fallback)
 - **superpowers-multi:finishing-a-development-branch** - Complete development after all tasks
