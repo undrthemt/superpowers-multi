@@ -5,7 +5,7 @@ description: Use when completing tasks, implementing major features, or before m
 
 # Requesting Code Review
 
-Dispatch superpowers:code-reviewer subagent to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history. This keeps the reviewer focused on the work product, not your thought process, and preserves your own context for continued work.
+Dispatch code review via `codex:codex-rescue` (primary) or `superpowers:code-reviewer` (fallback) to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history. This keeps the reviewer focused on the work product, not your thought process, and preserves your own context for continued work.
 
 **Core principle:** Review early, review often.
 
@@ -29,9 +29,13 @@ BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
 HEAD_SHA=$(git rev-parse HEAD)
 ```
 
-**2. Dispatch code-reviewer subagent:**
+**2. Preflight check:**
 
-Use Task tool with superpowers:code-reviewer type, fill template at `code-reviewer.md`
+Attempt to dispatch `codex:codex-rescue` subagent with a minimal probe (e.g., `echo ok`). If the Agent tool returns an error indicating the subagent type is not recognized or the dispatch fails, skip directly to step 4 (Claude fallback).
+
+**3. Dispatch Codex review (primary):**
+
+Dispatch `codex:codex-rescue` subagent using the template at `codex-review-prompt.md`
 
 **Placeholders:**
 - `{WHAT_WAS_IMPLEMENTED}` - What you just built
@@ -40,7 +44,18 @@ Use Task tool with superpowers:code-reviewer type, fill template at `code-review
 - `{HEAD_SHA}` - Ending commit
 - `{DESCRIPTION}` - Brief summary
 
-**3. Act on feedback:**
+**Validate the response:** The Codex review output must contain all three sections:
+- `### Strengths`
+- `### Issues` with severity categorization
+- `### Assessment` with a merge verdict
+
+If all sections are present, proceed to step 5.
+
+**4. Claude fallback:**
+
+If the preflight check fails, Codex returns an error, or the response is missing required sections — dispatch existing `superpowers:code-reviewer` subagent using the template at `code-reviewer.md` with the same placeholders. (Note: `code-reviewer.md` uses `{PLAN_REFERENCE}` where this skill uses `{PLAN_OR_REQUIREMENTS}` — fill both with the plan/requirements content.)
+
+**5. Act on feedback:**
 - Fix Critical issues immediately
 - Fix Important issues before proceeding
 - Note Minor issues for later
@@ -102,4 +117,6 @@ You: [Fix progress indicators]
 - Show code/tests that prove it works
 - Request clarification
 
-See template at: requesting-code-review/code-reviewer.md
+See templates at:
+- `codex-review-prompt.md` - Codex review (primary)
+- `code-reviewer.md` - Claude review (fallback)

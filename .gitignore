@@ -2,6 +2,7 @@
 .private-journal/
 .claude/
 .DS_Store
+.idea/
 node_modules/
 inspo
 triage/

@@ -5,7 +5,7 @@ description: Use when executing implementation plans with independent tasks in t
 
 # Subagent-Driven Development
 
-Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review.
+Execute plan by dispatching fresh subagent per task, with two-stage Codex-first review after each: spec compliance review first, then code quality review. Reviews dispatch via `codex:codex-rescue` with Claude fallback.
 
 **Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
 
@@ -49,10 +49,10 @@ digraph process {
         "Implementer subagent asks questions?" [shape=diamond];
         "Answer questions, provide context" [shape=box];
         "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
-        "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
+        "Dispatch spec reviewer (Codex → Claude fallback, ./codex-spec-reviewer-prompt.md)" [shape=box];
         "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
         "Implementer subagent fixes spec gaps" [shape=box];
-        "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
+        "Dispatch code quality reviewer (Codex → Claude fallback, ./code-quality-reviewer-prompt.md)" [shape=box];
         "Code quality reviewer subagent approves?" [shape=diamond];
         "Implementer subagent fixes quality issues" [shape=box];
         "Mark task complete in TodoWrite" [shape=box];
@@ -60,7 +60,7 @@ digraph process {
 
     "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
     "More tasks remain?" [shape=diamond];
-    "Dispatch final code reviewer subagent for entire implementation" [shape=box];
+    "Dispatch final code reviewer (Codex → Claude fallback)" [shape=box];
     "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
     "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
@@ -68,19 +68,19 @@ digraph process {
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
     "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
-    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
-    "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
+    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer (Codex → Claude fallback, ./codex-spec-reviewer-prompt.md)";
+    "Dispatch spec reviewer (Codex → Claude fallback, ./codex-spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
     "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
-    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
-    "Spec reviewer subagent confirms code matches spec?" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="yes"];
-    "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
+    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer (Codex → Claude fallback, ./codex-spec-reviewer-prompt.md)" [label="re-review"];
+    "Spec reviewer subagent confirms code matches spec?" -> "Dispatch code quality reviewer (Codex → Claude fallback, ./code-quality-reviewer-prompt.md)" [label="yes"];
+    "Dispatch code quality reviewer (Codex → Claude fallback, ./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
     "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
-    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
+    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer (Codex → Claude fallback, ./code-quality-reviewer-prompt.md)" [label="re-review"];
     "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
     "Mark task complete in TodoWrite" -> "More tasks remain?";
     "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
-    "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
-    "Dispatch final code reviewer subagent for entire implementation" -> "Use superpowers:finishing-a-development-branch";
+    "More tasks remain?" -> "Dispatch final code reviewer (Codex → Claude fallback)" [label="no"];
+    "Dispatch final code reviewer (Codex → Claude fallback)" -> "Use superpowers:finishing-a-development-branch";
 }
 ```
 
@@ -120,8 +120,9 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 ## Prompt Templates
 
 - `./implementer-prompt.md` - Dispatch implementer subagent
-- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
-- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
+- `./codex-spec-reviewer-prompt.md` - Dispatch spec compliance reviewer (Codex, primary)
+- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer (Claude, fallback)
+- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer (Codex primary, Claude fallback)
 
 ## Example Workflow
 
@@ -199,6 +200,21 @@ Final reviewer: All requirements met, ready to merge
 Done!
 ```
 
+## Final Review: Codex-First
+
+After all tasks complete, dispatch the final whole-implementation review using the Codex-first pattern:
+
+1. **Determine BASE_SHA dynamically:**
+```bash
+BASE_SHA=$(git merge-base HEAD $(git rev-parse --abbrev-ref @{upstream} 2>/dev/null || echo main))
+```
+If no upstream is configured, fall back to `main`. If `main` does not exist, use the first commit of the branch.
+
+2. **Preflight check** for `codex:codex-rescue`
+3. **Dispatch Codex** with `requesting-code-review/codex-review-prompt.md`, using the resolved BASE_SHA and HEAD
+4. **Validate response** against success criteria (Strengths/Issues/Assessment)
+5. **Fallback** to `superpowers:code-reviewer` if needed
+
 ## Advantages
 
 **vs. Manual execution:**
@@ -268,6 +284,7 @@ Done!
 - **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
 - **superpowers:writing-plans** - Creates the plan this skill executes
 - **superpowers:requesting-code-review** - Code review template for reviewer subagents
+- **codex:codex-rescue** (Codex plugin) - Primary review dispatcher; falls back to Claude subagents if unavailable
 - **superpowers:finishing-a-development-branch** - Complete development after all tasks
 
 **Subagents should use:**
