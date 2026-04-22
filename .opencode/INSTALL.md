@@ -10,7 +10,7 @@ Add superpowers to the `plugin` array in your `opencode.json` (global or project
 
 ```json
 {
-  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git"]
+  "plugin": ["superpowers@git+https://github.com/undrthemt/superpowers-multi.git"]
 }
 ```
 
@@ -79,5 +79,5 @@ When skills reference Claude Code tools:
 
 ## Getting Help
 
-- Report issues: https://github.com/obra/superpowers/issues
-- Full documentation: https://github.com/obra/superpowers/blob/main/docs/README.opencode.md
+- Report issues: https://github.com/undrthemt/superpowers-multi/issues
+- Full documentation: https://github.com/undrthemt/superpowers-multi/blob/main/docs/README.opencode.md
