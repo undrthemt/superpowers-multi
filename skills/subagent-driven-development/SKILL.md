@@ -61,7 +61,7 @@ digraph process {
     "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
     "More tasks remain?" [shape=diamond];
     "Dispatch final code reviewer (Codex → Claude fallback)" [shape=box];
-    "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+    "Use superpowers-multi:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
     "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
@@ -80,7 +80,7 @@ digraph process {
     "Mark task complete in TodoWrite" -> "More tasks remain?";
     "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer (Codex → Claude fallback)" [label="no"];
-    "Dispatch final code reviewer (Codex → Claude fallback)" -> "Use superpowers:finishing-a-development-branch";
+    "Dispatch final code reviewer (Codex → Claude fallback)" -> "Use superpowers-multi:finishing-a-development-branch";
 }
 ```
 
@@ -213,7 +213,7 @@ If no upstream is configured, fall back to `main`. If `main` does not exist, use
 2. **Preflight check** for `codex:codex-rescue`
 3. **Dispatch Codex** with `requesting-code-review/codex-review-prompt.md`, using the resolved BASE_SHA and HEAD
 4. **Validate response** against success criteria (Strengths/Issues/Assessment)
-5. **Fallback** to `superpowers:code-reviewer` if needed
+5. **Fallback** to `superpowers-multi:code-reviewer` if needed
 
 ## Advantages
 
@@ -281,14 +281,14 @@ If no upstream is configured, fall back to `main`. If `main` does not exist, use
 ## Integration
 
 **Required workflow skills:**
-- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
-- **superpowers:writing-plans** - Creates the plan this skill executes
-- **superpowers:requesting-code-review** - Code review template for reviewer subagents
+- **superpowers-multi:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
+- **superpowers-multi:writing-plans** - Creates the plan this skill executes
+- **superpowers-multi:requesting-code-review** - Code review template for reviewer subagents
 - **codex:codex-rescue** (Codex plugin) - Primary review dispatcher; falls back to Claude subagents if unavailable
-- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+- **superpowers-multi:finishing-a-development-branch** - Complete development after all tasks
 
 **Subagents should use:**
-- **superpowers:test-driven-development** - Subagents follow TDD for each task
+- **superpowers-multi:test-driven-development** - Subagents follow TDD for each task
 
 **Alternative workflow:**
-- **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+- **superpowers-multi:executing-plans** - Use for parallel session instead of same-session execution
