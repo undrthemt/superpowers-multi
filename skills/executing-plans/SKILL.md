@@ -29,6 +29,8 @@ For each task:
 3. Run verifications as specified
 4. Mark as completed
 
+**Review checkpoint:** After every 3 completed tasks (or after the final task if fewer than 3 remain), invoke `superpowers:requesting-code-review` to review the batch. Fix any Critical or Important issues before continuing to the next batch.
+
 ### Step 3: Complete Development
 
 After all tasks complete and verified:
@@ -67,4 +69,5 @@ After all tasks complete and verified:
 **Required workflow skills:**
 - **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
 - **superpowers:writing-plans** - Creates the plan this skill executes
+- **superpowers:requesting-code-review** - Batch review every 3 tasks (Codex-first with Claude fallback)
 - **superpowers:finishing-a-development-branch** - Complete development after all tasks
