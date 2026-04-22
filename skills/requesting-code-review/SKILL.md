@@ -5,7 +5,7 @@ description: Use when completing tasks, implementing major features, or before m
 
 # Requesting Code Review
 
-Dispatch code review via `codex:codex-rescue` (primary) or `superpowers-multi:code-reviewer` (fallback) to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history. This keeps the reviewer focused on the work product, not your thought process, and preserves your own context for continued work.
+Dispatch code review to a configurable external AI provider (with host AI fallback) to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history. This keeps the reviewer focused on the work product, not your thought process, and preserves your own context for continued work.
 
 **Core principle:** Review early, review often.
 
@@ -29,33 +29,18 @@ BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
 HEAD_SHA=$(git rev-parse HEAD)
 ```
 
-**2. Preflight check:**
+**2. Dispatch review:**
 
-Attempt to dispatch `codex:codex-rescue` subagent with a minimal probe (e.g., `echo ok`). If the Agent tool returns an error indicating the subagent type is not recognized or the dispatch fails, skip directly to step 4 (Claude fallback).
+Read `review-dispatch.md` in this skill directory and follow its dispatch instructions with:
+- review_type = code-quality
+- template_placeholders:
+  - `{WHAT_WAS_IMPLEMENTED}` - What you just built
+  - `{PLAN_OR_REQUIREMENTS}` - What it should do
+  - `{BASE_SHA}` - Starting commit
+  - `{HEAD_SHA}` - Ending commit
+  - `{DESCRIPTION}` - Brief summary
 
-**3. Dispatch Codex review (primary):**
-
-Dispatch `codex:codex-rescue` subagent using the template at `codex-review-prompt.md`
-
-**Placeholders:**
-- `{WHAT_WAS_IMPLEMENTED}` - What you just built
-- `{PLAN_OR_REQUIREMENTS}` - What it should do
-- `{BASE_SHA}` - Starting commit
-- `{HEAD_SHA}` - Ending commit
-- `{DESCRIPTION}` - Brief summary
-
-**Validate the response:** The Codex review output must contain all three sections:
-- `### Strengths`
-- `### Issues` with severity categorization
-- `### Assessment` with a merge verdict
-
-If all sections are present, proceed to step 5.
-
-**4. Claude fallback:**
-
-If the preflight check fails, Codex returns an error, or the response is missing required sections — dispatch existing `superpowers-multi:code-reviewer` subagent using the template at `code-reviewer.md` with the same placeholders. (Note: `code-reviewer.md` uses `{PLAN_REFERENCE}` where this skill uses `{PLAN_OR_REQUIREMENTS}` — fill both with the plan/requirements content.)
-
-**5. Act on feedback:**
+**3. Act on feedback:**
 - Fix Critical issues immediately
 - Fix Important issues before proceeding
 - Note Minor issues for later
@@ -117,6 +102,7 @@ You: [Fix progress indicators]
 - Show code/tests that prove it works
 - Request clarification
 
-See templates at:
-- `codex-review-prompt.md` - Codex review (primary)
-- `code-reviewer.md` - Claude review (fallback)
+See:
+- `review-prompt.md` - Code quality review template (provider-agnostic)
+- `review-dispatch.md` - Dispatch logic (provider resolution, CLI invocation, fallback)
+- `providers/` - Provider definitions (codex.json, claude-code.json)
