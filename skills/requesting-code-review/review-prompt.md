@@ -1,4 +1,6 @@
-# Code Review Agent
+# Code Quality Review Prompt Template
+
+This template is provider-agnostic. Dispatch is handled by review-dispatch.md.
 
 You are reviewing code changes for production readiness.
 
@@ -15,13 +17,14 @@ You are reviewing code changes for production readiness.
 
 ## Requirements/Plan
 
-{PLAN_REFERENCE}
+{PLAN_OR_REQUIREMENTS}
 
 ## Git Range to Review
 
 **Base:** {BASE_SHA}
 **Head:** {HEAD_SHA}
 
+Run these commands to see the changes:
 ```bash
 git diff --stat {BASE_SHA}..{HEAD_SHA}
 git diff {BASE_SHA}..{HEAD_SHA}
@@ -60,10 +63,12 @@ git diff {BASE_SHA}..{HEAD_SHA}
 - Documentation complete?
 - No obvious bugs?
 
-## Output Format
+## REQUIRED Output Format
+
+You MUST use exactly this structure. Missing sections will cause a fallback to host AI review.
 
 ### Strengths
-[What's well done? Be specific.]
+[What's well done? Be specific with file:line references.]
 
 ### Issues
 
