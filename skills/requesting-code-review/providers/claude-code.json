@@ -1,0 +1,12 @@
+{
+  "name": "claude-code",
+  "description": "Anthropic Claude Code CLI",
+  "detect": "which claude",
+  "invoke": {
+    "command": "claude",
+    "args": ["-p", "--output-format", "text"],
+    "input_method": "stdin",
+    "timeout_seconds": 300
+  },
+  "plugin_override": null
+}

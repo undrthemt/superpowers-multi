@@ -1,0 +1,15 @@
+{
+  "name": "codex",
+  "description": "OpenAI Codex CLI",
+  "detect": "which codex",
+  "invoke": {
+    "command": "codex",
+    "args": ["--quiet", "--prompt-file", "{{prompt_file}}"],
+    "input_method": "file",
+    "timeout_seconds": 300
+  },
+  "plugin_override": {
+    "host": "claude-code",
+    "subagent": "codex:codex-rescue"
+  }
+}
