@@ -1,47 +1,35 @@
-# Superpowers
+# Superpowers Multi
 
-Superpowers is a complete software development methodology for your coding agents, built on top of a set of composable skills and some initial instructions that make sure your agent uses them.
+A fork of [obra/superpowers](https://github.com/obra/superpowers).
 
-## How it works
+For the core concepts, workflow, skills library, and design philosophy, see the [upstream README](https://github.com/obra/superpowers#readme).
 
-It starts from the moment you fire up your coding agent. As soon as it sees that you're building something, it *doesn't* just jump into trying to write code. Instead, it steps back and asks you what you're really trying to do. 
+## What This Fork Adds
 
-Once it's teased a spec out of the conversation, it shows it to you in chunks short enough to actually read and digest. 
+### Generic Provider-Based Multi-AI Review Dispatch
 
-After you've signed off on the design, your agent puts together an implementation plan that's clear enough for an enthusiastic junior engineer with poor taste, no judgement, no project context, and an aversion to testing to follow. It emphasizes true red/green TDD, YAGNI (You Aren't Gonna Need It), and DRY. 
+Adds a mechanism to dispatch code reviews to multiple AI providers.
 
-Next up, once you say "go", it launches a *subagent-driven-development* process, having agents work through each engineering task, inspecting and reviewing their work, and continuing forward. It's not uncommon for Claude to be able to work autonomously for a couple hours at a time without deviating from the plan you put together.
-
-There's a bunch more to it, but that's the core of the system. And because the skills trigger automatically, you don't need to do anything special. Your coding agent just has Superpowers.
+- **requesting-code-review** — Reviews are dispatched via the `codex:codex-rescue` subagent (Codex plugin) as the primary reviewer, with automatic fallback to Claude subagents when Codex is unavailable
+- **subagent-driven-development** — Both stages of the two-stage review (spec compliance + code quality) and the final review use Codex-first dispatch. The final review uses `git merge-base` for stable diff boundaries
+- **executing-plans** — Batch review checkpoint every 3 tasks via `superpowers-multi:requesting-code-review`, applying Codex-first reviews
+- **Review templates** — Added Codex-optimized `codex-review-prompt.md` (code quality) and `codex-spec-reviewer-prompt.md` (spec compliance). Existing Claude templates are retained as fallback
 
 ## Prerequisites
 
-Superpowers works out of the box with no additional dependencies. For enhanced code review capabilities:
+Works out of the box with no additional dependencies. For enhanced code review capabilities:
 
 - **Codex Plugin (recommended):** When the [Codex plugin](https://github.com/openai/codex) for Claude Code is installed, code reviews are dispatched via Codex for an independent perspective. Without the plugin, reviews fall back to Claude subagents (fully functional).
 
-## Sponsorship
-
-If Superpowers has helped you do stuff that makes money and you are so inclined, I'd greatly appreciate it if you'd consider [sponsoring my opensource work](https://github.com/sponsors/obra).
-
-Thanks! 
-
-- Jesse
-
-
 ## Installation
-
-**Note:** Installation differs by platform. 
 
 ### Claude Code
 
-In Claude Code, register the marketplace first:
+Register the marketplace, then install the plugin:
 
 ```bash
 /plugin marketplace add undrthemt/superpowers-multi
 ```
-
-Then install the plugin from this marketplace:
 
 ```bash
 /plugin install superpowers-multi@superpowers-multi
@@ -49,36 +37,35 @@ Then install the plugin from this marketplace:
 
 ### OpenAI Codex CLI
 
-- Open plugin search interface
+Open the plugin search interface:
 
 ```bash
 /plugins
 ```
 
-Search for Superpowers
+Search for Superpowers:
 
 ```bash
 superpowers
 ```
 
-Select `Install Plugin`
+Select `Install Plugin`.
 
 ### OpenAI Codex App
 
-- In the Codex app, click on Plugins in the sidebar.
-- You should see `Superpowers` in the Coding section. 
-- Click the `+` next to Superpowers and follow the prompts.
+1. In the Codex app, click on Plugins in the sidebar.
+2. You should see `Superpowers` in the Coding section.
+3. Click the `+` next to Superpowers and follow the prompts.
 
+### Cursor
 
-### Cursor (via Plugin Marketplace)
-
-In Cursor Agent chat, install from marketplace:
+In Cursor Agent chat:
 
 ```text
-/add-plugin superpowers
+/add-plugin superpowers-multi
 ```
 
-or search for "superpowers" in the plugin marketplace.
+or search for "superpowers-multi" in the plugin marketplace.
 
 ### OpenCode
 
@@ -109,83 +96,16 @@ To update:
 gemini extensions update superpowers
 ```
 
-## The Basic Workflow
+## Release Notes
 
-1. **brainstorming** - Activates before writing code. Refines rough ideas through questions, explores alternatives, presents design in sections for validation. Saves design document.
-
-2. **using-git-worktrees** - Activates after design approval. Creates isolated workspace on new branch, runs project setup, verifies clean test baseline.
-
-3. **writing-plans** - Activates with approved design. Breaks work into bite-sized tasks (2-5 minutes each). Every task has exact file paths, complete code, verification steps.
-
-4. **subagent-driven-development** or **executing-plans** - Activates with plan. Dispatches fresh subagent per task with two-stage review (spec compliance, then code quality), or executes in batches with human checkpoints.
-
-5. **test-driven-development** - Activates during implementation. Enforces RED-GREEN-REFACTOR: write failing test, watch it fail, write minimal code, watch it pass, commit. Deletes code written before tests.
-
-6. **requesting-code-review** - Activates between tasks. Reviews against plan, reports issues by severity. Critical issues block progress.
-
-7. **finishing-a-development-branch** - Activates when tasks complete. Verifies tests, presents options (merge/PR/keep/discard), cleans up worktree.
-
-**The agent checks for relevant skills before any task.** Mandatory workflows, not suggestions.
-
-## What's Inside
-
-### Skills Library
-
-**Testing**
-- **test-driven-development** - RED-GREEN-REFACTOR cycle (includes testing anti-patterns reference)
-
-**Debugging**
-- **systematic-debugging** - 4-phase root cause process (includes root-cause-tracing, defense-in-depth, condition-based-waiting techniques)
-- **verification-before-completion** - Ensure it's actually fixed
-
-**Collaboration** 
-- **brainstorming** - Socratic design refinement
-- **writing-plans** - Detailed implementation plans
-- **executing-plans** - Batch execution with checkpoints
-- **dispatching-parallel-agents** - Concurrent subagent workflows
-- **requesting-code-review** - Pre-review checklist
-- **receiving-code-review** - Responding to feedback
-- **using-git-worktrees** - Parallel development branches
-- **finishing-a-development-branch** - Merge/PR decision workflow
-- **subagent-driven-development** - Fast iteration with two-stage review (spec compliance, then code quality)
-
-**Meta**
-- **writing-skills** - Create new skills following best practices (includes testing methodology)
-- **using-superpowers** - Introduction to the skills system
-
-## Philosophy
-
-- **Test-Driven Development** - Write tests first, always
-- **Systematic over ad-hoc** - Process over guessing
-- **Complexity reduction** - Simplicity as primary goal
-- **Evidence over claims** - Verify before declaring success
-
-Read [the original release announcement](https://blog.fsck.com/2025/10/09/superpowers/).
-
-## Contributing
-
-The general contribution process for Superpowers is below. Keep in mind that we don't generally accept contributions of new skills and that any updates to skills must work across all of the coding agents we support.
-
-1. Fork the repository
-2. Switch to the 'dev' branch
-3. Create a branch for your work
-4. Follow the `writing-skills` skill for creating and testing new and modified skills
-5. Submit a PR, being sure to fill in the pull request template.
-
-See `skills/writing-skills/SKILL.md` for the complete guide.
-
-## Updating
-
-Superpowers updates are somewhat coding-agent dependent, but are often automatic.
+See [RELEASE-NOTES.md](RELEASE-NOTES.md) for fork-specific release information.
 
 ## License
 
 MIT License - see LICENSE file for details
 
-## Community
+## Links
 
-Superpowers is built by [Jesse Vincent](https://blog.fsck.com) and the rest of the folks at [Prime Radiant](https://primeradiant.com).
-
-- **Discord**: [Join us](https://discord.gg/35wsABTejz) for community support, questions, and sharing what you're building with Superpowers
+- **Fork source**: [obra/superpowers](https://github.com/obra/superpowers)
 - **Issues**: https://github.com/undrthemt/superpowers-multi/issues
-- **Release announcements**: [Sign up](https://primeradiant.com/superpowers/) to get notified about new versions
+- **Original community (Discord)**: [Join](https://discord.gg/35wsABTejz)
