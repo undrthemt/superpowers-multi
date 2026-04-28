@@ -179,7 +179,12 @@ The dispatch follows a 7-step flow, mirroring the review dispatch pattern.
 #### Step 1: Check Coding Enabled
 
 - Read `.superpowers/review-config.json`
-- If `coding.enabled` is `false` or absent → skip to Step 7 (fallback to host AI implementer)
+- If the file does not exist or the `coding` key is absent → **prompt the user** to configure multi-AI coding dispatch:
+  > "Multi-AI coding dispatch is available but not configured. To route implementation tasks to external AI providers (e.g., different providers for frontend vs backend), add a `coding` section to `.superpowers/review-config.json`. Would you like to set it up now?"
+  - If user declines or wants to proceed without configuring → skip to Step 7 (fallback to host AI implementer)
+  - If user agrees → guide them through creating the config (ask for default provider, category rules), then proceed to Step 2
+  - **Once prompted in a session, do not prompt again** — remember the user's choice for the session
+- If `coding.enabled` is explicitly `false` → skip to Step 7 silently (user has opted out)
 
 #### Step 2: Resolve Provider
 
@@ -230,7 +235,7 @@ Before dispatching (Step 4 or 5), save the current HEAD SHA as `pre_dispatch_sha
 
 #### Step 7: Fallback
 
-- If reached from Step 1 (coding disabled): use host AI `general-purpose` subagent with `implementer-prompt.md` — this is the existing SDD behavior, not a degraded path
+- If reached from Step 1 (coding not configured and user declined, or explicitly disabled): use host AI `general-purpose` subagent with `implementer-prompt.md` — this is the existing SDD behavior, not a degraded path
 - If reached from Step 5/6 (external provider failed): notify user of failure, then use host AI `general-purpose` subagent with `implementer-prompt.md`
 
 ### Dispatch Flow Diagram
@@ -239,9 +244,12 @@ Before dispatching (Step 4 or 5), save the current HEAD SHA as `pre_dispatch_sha
 Task execution starts
     │
     ▼
-coding.enabled?
-├─ NO → Fallback (host AI + implementer-prompt.md) ── existing SDD behavior
-└─ YES
+coding config exists?
+├─ NO config / no coding key → Prompt user to configure
+│   ├─ User declines → Fallback (host AI + implementer-prompt.md)
+│   └─ User agrees → Setup config → continue below
+├─ coding.enabled: false → Fallback silently (user opted out)
+└─ coding.enabled: true
     │
     ▼
 Category → Rules → Resolve provider

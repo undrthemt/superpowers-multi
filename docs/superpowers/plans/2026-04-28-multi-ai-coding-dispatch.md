@@ -122,10 +122,20 @@ The caller provides:
 
 Read `.superpowers/review-config.json`.
 
-- If the file does not exist → skip to Step 7 (Fallback)
-- If `coding.enabled` is `false` or the `coding` key is absent → skip to Step 7 (Fallback)
+**Config file does not exist OR `coding` key is absent** → prompt the user:
 
-Step 7 fallback from here is NOT a failure — it is the existing SDD behavior (host AI implementer).
+> "Multi-AI coding dispatch is available but not configured. To route implementation tasks to external AI providers (e.g., different providers for frontend vs backend), add a `coding` section to `.superpowers/review-config.json`. Would you like to set it up now?"
+
+- If user **declines** → skip to Step 7 (Fallback). Remember this choice for the session — do not prompt again.
+- If user **agrees** → guide them through setup:
+  1. Ask which default provider to use (scan `skills/requesting-code-review/providers/` for available CLIs)
+  2. Ask if they want category-specific rules (e.g., frontend → claude-code, backend → codex)
+  3. Write the `coding` section to `.superpowers/review-config.json` (create file if needed)
+  4. Proceed to Step 2
+
+**`coding.enabled` is explicitly `false`** → skip to Step 7 silently. The user has opted out.
+
+**`coding.enabled` is `true`** → proceed to Step 2.
 
 ## Step 2: Resolve Provider
 
@@ -215,7 +225,7 @@ When result validation fails due to **no file changes** (but the CLI produced no
 
 ## Step 7: Fallback
 
-If reached from Step 1 (coding not enabled):
+If reached from Step 1 (coding not configured and user declined, or explicitly disabled):
 - This is the existing SDD behavior, not a degraded path.
 - Use host AI `general-purpose` subagent with `./implementer-prompt.md` template.
 
