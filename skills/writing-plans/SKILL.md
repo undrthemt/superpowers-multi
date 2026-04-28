@@ -64,6 +64,7 @@ This structure informs the task decomposition. Each task should produce self-con
 
 ````markdown
 ### Task N: [Component Name]
+category: frontend | backend | fullstack
 
 **Files:**
 - Create: `exact/path/to/file.py`
@@ -102,6 +103,18 @@ git add tests/path/test.py src/path/file.py
 git commit -m "feat: add specific feature"
 ```
 ````
+
+## Category Tags (Optional)
+
+When the project uses multi-AI coding dispatch (`.superpowers/review-config.json` with `coding.enabled: true`), tasks can include a `category:` field to control which AI provider handles the implementation:
+
+- `frontend` — UI components, styling, browser APIs, state management
+- `backend` — API endpoints, DB operations, business logic, migrations
+- `fullstack` — spans both layers
+
+The `category:` line goes directly after the task heading (`### Task N:`), before `**Files:**`.
+
+**This is optional.** If omitted, the coding dispatch system auto-classifies based on task content. Include it when auto-classification might get it wrong (e.g., a test file for UI components that lives in a backend test directory).
 
 ## No Placeholders
 
