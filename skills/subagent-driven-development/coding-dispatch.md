@@ -24,7 +24,20 @@ Read `.superpowers/review-config.json`.
 - If user **agrees** → guide them through setup:
   1. Ask which default provider to use (scan `skills/requesting-code-review/providers/` for available CLIs)
   2. Ask if they want category-specific rules (e.g., frontend → claude-code, backend → codex)
-  3. Write the `coding` section to `.superpowers/review-config.json` (create file if needed)
+  3. Write the `coding` section to `.superpowers/review-config.json` (create file if needed). Target structure:
+     ```json
+     {
+       "review_provider": "codex",
+       "coding": {
+         "enabled": true,
+         "default_provider": "codex",
+         "rules": [
+           { "category": "frontend", "provider": "claude-code" },
+           { "category": "backend", "provider": "codex" }
+         ]
+       }
+     }
+     ```
   4. Proceed to Step 2
 
 **`coding.enabled` is explicitly `false`** → skip to Step 7 silently. The user has opted out.
@@ -66,7 +79,7 @@ If the resolved override is null or host does not match → continue to Step 5.
 
 ## Step 5: CLI Dispatch
 
-Resolve invocation config: for each field (`args`, `input_method`, `timeout_seconds`), use `invoke_coding.<field>` if present; otherwise fall back to `invoke.<field>`.
+Resolve invocation config: for each field (`command`, `args`, `input_method`, `timeout_seconds`), use `invoke_coding.<field>` if present; otherwise fall back to `invoke.<field>`. The `command` field is almost always inherited from `invoke` since the CLI executable is the same for review and coding.
 
 1. Save current HEAD SHA as `pre_dispatch_sha` (if not already saved in Step 4): `git rev-parse HEAD`
 
@@ -93,7 +106,10 @@ Resolve invocation config: for each field (`args`, `input_method`, `timeout_seco
 
 Validation uses the `pre_dispatch_sha` saved before dispatch.
 
-- **File change check**: Run `git diff --stat <pre_dispatch_sha>..HEAD` — at least one file must have changed (covers both committed and uncommitted changes)
+- **File change check**: Check for both committed and uncommitted changes:
+  1. `git diff --stat <pre_dispatch_sha>..HEAD` — detects committed changes since dispatch
+  2. `git diff --stat` — detects uncommitted changes in the working tree
+  At least one of these must show changed files
 - **Empty response check**: CLI output must not be empty
 - **Timeout check**: CLI must have exited normally (exit code 0, not killed by timeout)
 
@@ -104,7 +120,7 @@ If all pass → return the result to the caller.
 
 When result validation fails due to **no file changes** (but the CLI produced non-empty output), check if the external AI is asking questions:
 
-**Detection:** If `git diff --stat <pre_dispatch_sha>..HEAD` is empty AND the output contains question-like patterns (interrogative sentences, "I need to know", "please clarify", "could you provide", etc.), treat it as a Q&A response.
+**Detection:** If both `git diff --stat <pre_dispatch_sha>..HEAD` and `git diff --stat` are empty (no committed or uncommitted changes) AND the output contains question-like patterns (interrogative sentences, "I need to know", "please clarify", "could you provide", etc.), treat it as a Q&A response.
 
 **Plugin override (subagent) dispatch:**
 - Same as the existing NEEDS_CONTEXT flow — the subagent returns a question, the host AI answers, and the subagent is re-dispatched with the answer appended to context.

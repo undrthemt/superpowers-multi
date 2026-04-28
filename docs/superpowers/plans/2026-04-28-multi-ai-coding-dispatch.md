@@ -8,7 +8,7 @@
 
 **Tech Stack:** Markdown (skill files), JSON (provider definitions)
 
-**Spec:** `docs/superpowers/specs/2026-04-28-multi-ai-coding-dispatch-design.md`
+**Spec:** Design spec was inlined into this plan (original spec file removed)
 
 ---
 

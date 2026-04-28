@@ -64,7 +64,7 @@ This structure informs the task decomposition. Each task should produce self-con
 
 ````markdown
 ### Task N: [Component Name]
-category: frontend | backend | fullstack
+category: frontend | backend | fullstack  ← optional, see Category Tags section
 
 **Files:**
 - Create: `exact/path/to/file.py`
