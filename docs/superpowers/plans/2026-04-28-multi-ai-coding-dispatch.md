@@ -95,6 +95,8 @@ git commit -m "feat: add provider-agnostic coding prompt template"
 ### Task 2: Create coding-dispatch.md
 category: backend
 
+> **Note:** The code block below is the original plan version. The deployed file at `skills/subagent-driven-development/coding-dispatch.md` includes post-review fixes (C1: `command` fallback, C2: uncommitted change detection, config JSON example). The deployed file is authoritative.
+
 **Files:**
 - Create: `skills/subagent-driven-development/coding-dispatch.md`
 - Reference: `skills/requesting-code-review/review-dispatch.md` (pattern to mirror)
