@@ -8,5 +8,11 @@
     "input_method": "stdin",
     "timeout_seconds": 300
   },
-  "plugin_override": null
+  "invoke_coding": {
+    "args": ["-p", "--output-format", "text"],
+    "input_method": "stdin",
+    "timeout_seconds": 600
+  },
+  "plugin_override": null,
+  "plugin_override_coding": null
 }

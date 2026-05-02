@@ -7,6 +7,8 @@ description: Use when executing implementation plans with independent tasks in t
 
 Execute plan by dispatching fresh subagent per task, with two-stage external review after each: spec compliance review first, then code quality review. Reviews dispatch via a configurable external AI provider with host AI fallback (see `skills/requesting-code-review/review-dispatch.md`).
 
+**Coding dispatch:** Before dispatching the host AI implementer, the system can route implementation tasks to an external AI coding provider based on task category (frontend, backend, etc.). This is configured in `.superpowers/review-config.json` under the `coding` key. When disabled or unconfigured, the existing host AI implementer flow is used. See `./coding-dispatch.md` for the full routing logic.
+
 **Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
 
 **Core principle:** Fresh subagent per task + two-stage external review (spec then quality) = high quality, fast iteration
@@ -45,6 +47,9 @@ digraph process {
 
     subgraph cluster_per_task {
         label="Per Task";
+        "Classify task category (plan tag → AI auto-classification)" [shape=box];
+        "Dispatch coding provider (./coding-dispatch.md)" [shape=box];
+        "Coding dispatch returns result or falls back to implementer" [shape=diamond];
         "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
         "Implementer subagent asks questions?" [shape=diamond];
         "Answer questions, provide context" [shape=box];
@@ -63,7 +68,11 @@ digraph process {
     "Dispatch final code reviewer (external provider → host fallback)" [shape=box];
     "Use superpowers-multi:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
-    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Classify task category (plan tag → AI auto-classification)";
+    "Classify task category (plan tag → AI auto-classification)" -> "Dispatch coding provider (./coding-dispatch.md)";
+    "Dispatch coding provider (./coding-dispatch.md)" -> "Coding dispatch returns result or falls back to implementer";
+    "Coding dispatch returns result or falls back to implementer" -> "Dispatch spec reviewer (external provider → host fallback, ./spec-review-prompt.md)" [label="external provider succeeded"];
+    "Coding dispatch returns result or falls back to implementer" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="fallback to host AI"];
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
     "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
@@ -78,7 +87,7 @@ digraph process {
     "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer (external provider → host fallback, ./code-quality-reviewer-prompt.md)" [label="re-review"];
     "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
     "Mark task complete in TodoWrite" -> "More tasks remain?";
-    "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
+    "More tasks remain?" -> "Classify task category (plan tag → AI auto-classification)" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer (external provider → host fallback)" [label="no"];
     "Dispatch final code reviewer (external provider → host fallback)" -> "Use superpowers-multi:finishing-a-development-branch";
 }
@@ -98,6 +107,22 @@ Use the least powerful model that can handle each role to conserve cost and incr
 - Touches 1-2 files with a complete spec → cheap model
 - Touches multiple files with integration concerns → standard model
 - Requires design judgment or broad codebase understanding → most capable model
+
+## Task Category Classification
+
+Before dispatching each task, classify it into a category for provider routing:
+
+**Priority 1 — Plan tag:** If the task has a `category:` field (e.g., `category: frontend`), use that value directly.
+
+**Priority 2 — AI auto-classification:** If no tag is present, classify based on task content:
+
+| Category | Signals |
+|----------|---------|
+| `frontend` | UI components, styling, layout, browser APIs, frontend routing, state management |
+| `backend` | API endpoints, DB operations, auth, business logic, server-side processing, migrations |
+| `fullstack` | Task spans both frontend and backend layers |
+
+Pass the classified category to `./coding-dispatch.md` as the `task_category` parameter.
 
 ## Handling Implementer Status
 
@@ -119,7 +144,9 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 
 ## Prompt Templates
 
-- `./implementer-prompt.md` - Dispatch implementer subagent
+- `./coding-dispatch.md` - Coding task routing logic (category → provider → CLI/subagent → validation → fallback)
+- `./coding-prompt.md` - Provider-agnostic coding prompt template (used by coding-dispatch.md)
+- `./implementer-prompt.md` - Dispatch implementer subagent (used as fallback when coding dispatch is disabled or fails)
 - `./spec-review-prompt.md` - Spec compliance review template (provider-agnostic)
 - `./code-quality-reviewer-prompt.md` - Code quality review dispatch reference (delegates to `review-dispatch.md`)
 - `skills/requesting-code-review/review-dispatch.md` - Centralized dispatch logic for all review types
@@ -287,6 +314,7 @@ If no upstream is configured, fall back to `main`. If `main` does not exist, use
 - **superpowers-multi:writing-plans** - Creates the plan this skill executes
 - **superpowers-multi:requesting-code-review** - Code review templates and dispatch logic
 - **review-dispatch.md** - Configurable external review provider with host AI fallback
+- **./coding-dispatch.md** - Configurable external coding provider with host AI fallback
 - **superpowers-multi:finishing-a-development-branch** - Complete development after all tasks
 
 **Subagents should use:**

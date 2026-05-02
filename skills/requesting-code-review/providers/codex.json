@@ -8,7 +8,16 @@
     "input_method": "file",
     "timeout_seconds": 300
   },
+  "invoke_coding": {
+    "args": ["--prompt-file", "{{prompt_file}}"],
+    "input_method": "file",
+    "timeout_seconds": 600
+  },
   "plugin_override": {
+    "host": "claude-code",
+    "subagent": "codex:codex-rescue"
+  },
+  "plugin_override_coding": {
     "host": "claude-code",
     "subagent": "codex:codex-rescue"
   }
