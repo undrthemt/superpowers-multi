@@ -24,7 +24,7 @@ Check in this order (first match wins):
 
 2. **Load merged config** by following `./config-loading.md` with `caller_intent="review"`. It returns `{ merged_config, source }`.
    - If `merged_config.review_provider` is set → use it. Skip to Step 3.
-   - If `source == "user-declined"` and `merged_config.review_provider` is unset → notify "No review provider configured." and proceed to step 2.3.
+   - If `source == "user-declined"` and `merged_config.review_provider` is unset → notify "No review provider configured." and fall through to bullet 3 below ("No provider resolved").
 
 3. **No provider resolved** → discover and ask:
    a. Scan `skills/requesting-code-review/providers/` for all `*.json` files

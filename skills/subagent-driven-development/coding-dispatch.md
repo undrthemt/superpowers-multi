@@ -20,7 +20,7 @@ Decide what to do based on `source` and the presence/value of `merged_config.cod
 
 1. **`source == "user-declined"`** → skip to Step 7 (Fallback) silently. The user already declined to configure during config-loading; do not prompt again.
 
-2. **`merged_config.coding` is absent** (either `source == "merged"` from a config that has no `coding` key, or `source == "session-only"` for a review-only setup) → prompt the user:
+2. **`merged_config.coding` is absent** (i.e., at least one config exists on disk but lacks a `coding` block; the empty-both case is already handled inside `config-loading.md` Step 6 when `caller_intent="coding"`) → prompt the user:
 
    > "Multi-AI coding dispatch is available but not configured. To route implementation tasks to external AI providers (e.g., different providers for frontend vs backend), set up a `coding` section now. Would you like to?"
 
