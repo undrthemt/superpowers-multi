@@ -308,9 +308,9 @@ Expected: `1` (or more if the file already cross-referenced it elsewhere).
 
 Also run:
 ```bash
-grep -c "Config file exists at \`.superpowers/review-config.json\`" skills/requesting-code-review/review-dispatch.md
+grep -F -c '**Config file exists**' skills/requesting-code-review/review-dispatch.md
 ```
-Expected: `0` (the old wording is gone).
+Expected: `0` (the old `**Config file exists**` bullet is gone).
 
 - [ ] **Step 4: Commit**
 
@@ -344,32 +344,36 @@ Replace the current Step 1 section (everything from `## Step 1: Check Coding Ena
 
 Load the merged config by following `skills/requesting-code-review/config-loading.md` with `caller_intent="coding"`. It returns `{ merged_config, source }`.
 
-**`merged_config.coding` is absent and `source != "merged"`** (i.e., neither file existed; setup UX did not produce a `coding` block — for example the user picked session-only for review only) → prompt the user:
+Decide what to do based on `source` and the presence/value of `merged_config.coding`. Check in order; first match wins:
 
-> "Multi-AI coding dispatch is available but not configured. To route implementation tasks to external AI providers (e.g., different providers for frontend vs backend), set up a `coding` section now. Would you like to?"
+1. **`source == "user-declined"`** → skip to Step 7 (Fallback) silently. The user already declined to configure during config-loading; do not prompt again.
 
-- If user **declines** → skip to Step 7 (Fallback). Remember this choice for the session — do not prompt again.
-- If user **agrees** → guide them through setup:
-  1. Ask which default provider to use (scan `skills/requesting-code-review/providers/` for available CLIs).
-  2. Ask if they want category-specific rules (e.g., frontend → claude-code, backend → codex).
-  3. Use the **Save-Location Helper** in `skills/requesting-code-review/config-loading.md` to choose where to write (global / project / session-only). Pass the delta:
-     ```json
-     {
-       "coding": {
-         "enabled": true,
-         "default_provider": "<chosen>",
-         "rules": [
-           { "category": "frontend", "provider": "claude-code" },
-           { "category": "backend",  "provider": "codex" }
-         ]
-       }
-     }
-     ```
-  4. Re-run config loading; proceed to Step 2.
+2. **`merged_config.coding` is absent** (either `source == "merged"` from a config that has no `coding` key, or `source == "session-only"` for a review-only setup) → prompt the user:
 
-**`merged_config.coding` is present but `coding.enabled` is explicitly `false`** → skip to Step 7 silently. The user has opted out.
+   > "Multi-AI coding dispatch is available but not configured. To route implementation tasks to external AI providers (e.g., different providers for frontend vs backend), set up a `coding` section now. Would you like to?"
 
-**`merged_config.coding` is present and `coding.enabled` is `true`** (or absent — treat absent as `true` for backward compatibility with configs that only set `default_provider` or `rules`) → proceed to Step 2.
+   - If user **declines** → skip to Step 7 (Fallback). Remember this choice for the session — do not prompt again.
+   - If user **agrees** → guide them through setup:
+     a. Ask which default provider to use (scan `skills/requesting-code-review/providers/` for available CLIs).
+     b. Ask if they want category-specific rules (e.g., frontend → claude-code, backend → codex).
+     c. Use the **Save-Location Helper** in `skills/requesting-code-review/config-loading.md` to choose where to write (global / project / session-only). Pass the delta:
+        ```json
+        {
+          "coding": {
+            "enabled": true,
+            "default_provider": "<chosen>",
+            "rules": [
+              { "category": "frontend", "provider": "claude-code" },
+              { "category": "backend",  "provider": "codex" }
+            ]
+          }
+        }
+        ```
+     d. Re-run config loading; proceed to Step 2.
+
+3. **`merged_config.coding.enabled === false`** → skip to Step 7 silently. The user has opted out.
+
+4. **Otherwise** (`merged_config.coding` is present and `enabled` is `true` or absent — treat absent as `true` for backward compatibility with configs that only set `default_provider` or `rules`) → proceed to Step 2.
 ```
 
 Use Edit to replace the existing block.
@@ -536,7 +540,7 @@ Run:
 ```bash
 grep -n "review-config.json" README.md
 ```
-Expected: 4 hits — line ~11 (review section description), line ~20 (coding section description), line ~46 (Prerequisites bullet).
+Expected: 3 hits — line ~11 (review section description), line ~20 (coding section description), line ~46 (Prerequisites bullet).
 
 - [ ] **Step 2: Replace the review section line**
 
@@ -719,7 +723,7 @@ Expected: every path mentioned in `config-loading.md` resolves to a real file or
 
 - [ ] **Step 3: JSON examples in config-loading.md are coherent**
 
-Manually inspect the worked-example block in Section 4 (Merge) of `skills/requesting-code-review/config-loading.md`. Confirm:
+Manually inspect the worked-example block under `## Step 4: Merge` (the "Worked example" subsection) of `skills/requesting-code-review/config-loading.md`. Confirm:
 - The `global` block has `frontend → claude-code` and `backend → codex`.
 - The `project` block overrides `backend → claude-code`.
 - The `merged` block keeps `frontend → claude-code` (from global) and shows `backend → claude-code` (overridden).
