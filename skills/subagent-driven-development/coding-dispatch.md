@@ -14,28 +14,33 @@ The caller provides:
 
 ## Step 1: Check Coding Enabled
 
-Load the merged config by following `skills/requesting-code-review/config-loading.md` with `caller_intent="coding"`. It returns `{ merged_config, source }`.
-
 ### Session State
 
 This dispatcher maintains two pieces of session-level state across dispatches in the same conversation:
 
-- `session_coding_decline = true` — set when the user declined coding setup in case 2; suppresses re-prompting.
-- `session_coding_cache = { enabled, default_provider, rules }` — set when the user agreed to coding setup but chose `"session-only"` save in case 2; provides the in-memory coding block for subsequent dispatches.
+- `session_coding_decline = true` — set when the user declined coding setup, or cancelled the bootstrap setup in `config-loading.md`; suppresses re-prompting.
+- `session_coding_cache = { enabled, default_provider, rules }` — set when the user agreed to coding setup but chose `"session-only"` save (in case 2 of this dispatcher, or in `config-loading.md` Step 6); provides the in-memory coding block for subsequent dispatches.
 
 These are mutually exclusive: setting one clears the other.
 
-### Pre-check: Apply session cache
+### Pre-load short-circuit (runs BEFORE calling config-loading)
 
-Before evaluating the cases below, if `merged_config.coding` is absent AND `session_coding_cache` is set → use `session_coding_cache` as the effective `merged_config.coding` and proceed to Step 2 (skip the cases below).
+Before invoking `config-loading.md`, check session state:
 
-If `merged_config.coding` is absent AND `session_coding_decline` is `true` → skip to Step 7 (Fallback) silently.
+- If `session_coding_cache` is set → set `merged_config = { coding: <session_coding_cache> }`, skip the config-loading call, and proceed to Step 2. (Disk may still have an authoritative coding block; the cache only applies when the user's last choice was session-only. To re-read disk, the user must clear the session — typically by starting a new conversation.)
+- If `session_coding_decline` is `true` → skip to Step 7 (Fallback) silently. The config-loading call is also skipped to avoid re-prompting via Setup UX.
+
+If neither is set, continue.
+
+### Load config
+
+Follow `skills/requesting-code-review/config-loading.md` with `caller_intent="coding"`. It returns `{ merged_config, source }`.
 
 ### Cases
 
 Decide what to do based on `source` and the presence/value of `merged_config.coding`. Check in order; first match wins:
 
-1. **`source == "user-declined"`** → skip to Step 7 (Fallback) silently. The user already declined to configure during config-loading; do not prompt again.
+1. **`source == "user-declined"`** → set `session_coding_decline = true`, clear `session_coding_cache`, then skip to Step 7 (Fallback) silently. The user cancelled during config-loading's Setup UX; do not prompt again this session.
 
 2. **`merged_config.coding` is absent** (i.e., at least one config exists on disk but lacks a `coding` block; the empty-both case is already handled inside `config-loading.md` Step 6 when `caller_intent="coding"`) → prompt the user:
 
@@ -67,7 +72,7 @@ Decide what to do based on `source` and the presence/value of `merged_config.cod
 
 3. **`merged_config.coding.enabled === false`** → skip to Step 7 silently. The user has opted out.
 
-4. **Otherwise** (`merged_config.coding` is present and `enabled` is `true` or absent — treat absent as `true` for backward compatibility with configs that only set `default_provider` or `rules`) → proceed to Step 2.
+4. **Otherwise** (`merged_config.coding` is present and `enabled` is `true` or absent — treat absent as `true` for backward compatibility with configs that only set `default_provider` or `rules`) → before proceeding to Step 2, populate the session cache for next time: if `source == "session-only"` AND `session_coding_cache` is unset → set `session_coding_cache` to `merged_config.coding` and clear `session_coding_decline`. (No-op when `source == "merged"`, since disk is authoritative.) Then proceed to Step 2.
 
 ## Step 2: Resolve Provider
 
