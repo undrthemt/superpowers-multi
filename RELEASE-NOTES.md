@@ -30,7 +30,7 @@ Extends the multi-AI dispatch system to also route implementation tasks, with ca
 
 Generalized the previous Codex-first review system into a provider-agnostic dispatch mechanism, so reviews can be routed to any configured AI CLI. (#4)
 
-- **review-dispatch.md** — new centralized dispatch logic at `skills/requesting-code-review/review-dispatch.md`. All review skills (requesting-code-review, subagent-driven-development, executing-plans) now reference this file instead of containing their own dispatch logic.
+- **review-dispatch.md** — new centralized dispatch logic at `skills/requesting-code-review/review-dispatch.md`. `requesting-code-review` and `subagent-driven-development` now reference this file instead of containing their own dispatch logic; `executing-plans` picks up the new dispatch transitively through its existing call to `superpowers-multi:requesting-code-review`.
 - **Provider definitions** — `skills/requesting-code-review/providers/*.json` declares a CLI's `name`, `description`, `detect`, `invoke` (command/args/input_method/timeout), and an optional `plugin_override` (host AI + subagent type). Currently bundled: Codex CLI, Claude Code.
 - **Provider-agnostic templates** — `review-prompt.md` (code quality) and `spec-review-prompt.md` (spec compliance) replace the Codex/Claude-specific template pair.
 - **Config** — provider selected via `review_provider` in `.superpowers/review-config.json`. Without a config, the system scans available providers, presents the list, and remembers the choice for the session.
