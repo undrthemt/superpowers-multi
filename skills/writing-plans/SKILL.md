@@ -106,7 +106,7 @@ git commit -m "feat: add specific feature"
 
 ## Category Tags (Optional)
 
-When the project uses multi-AI coding dispatch (`.superpowers/review-config.json` with `coding.enabled: true`), tasks can include a `category:` field to control which AI provider handles the implementation:
+When multi-AI coding dispatch is enabled (via `${XDG_CONFIG_HOME:-~/.config}/superpowers/review-config.json` or `.superpowers/review-config.json`, with `coding.enabled: true`), tasks can include a `category:` field to control which AI provider handles the implementation:
 
 - `frontend` — UI components, styling, browser APIs, state management
 - `backend` — API endpoints, DB operations, business logic, migrations

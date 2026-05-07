@@ -14,35 +14,75 @@ The caller provides:
 
 ## Step 1: Check Coding Enabled
 
-Read `.superpowers/review-config.json`.
+### Session State
 
-**Config file does not exist OR `coding` key is absent** → prompt the user:
+This dispatcher maintains two pieces of session-level state across dispatches in the same conversation:
 
-> "Multi-AI coding dispatch is available but not configured. To route implementation tasks to external AI providers (e.g., different providers for frontend vs backend), add a `coding` section to `.superpowers/review-config.json`. Would you like to set it up now?"
+- `session_coding_decline = true` — set when the user declined coding setup, or cancelled the bootstrap setup in `config-loading.md`; suppresses re-prompting.
+- `session_coding_cache = { enabled, default_provider, rules }` — set when the user agreed to coding setup but chose `"session-only"` save (in case 2 of this dispatcher, or in `config-loading.md` Step 6); provides the in-memory coding block for subsequent dispatches.
 
-- If user **declines** → skip to Step 7 (Fallback). Remember this choice for the session — do not prompt again.
-- If user **agrees** → guide them through setup:
-  1. Ask which default provider to use (scan `skills/requesting-code-review/providers/` for available CLIs)
-  2. Ask if they want category-specific rules (e.g., frontend → claude-code, backend → codex)
-  3. Write the `coding` section to `.superpowers/review-config.json` (create file if needed). Target structure:
-     ```json
-     {
-       "review_provider": "codex",
-       "coding": {
-         "enabled": true,
-         "default_provider": "codex",
-         "rules": [
-           { "category": "frontend", "provider": "claude-code" },
-           { "category": "backend", "provider": "codex" }
-         ]
-       }
-     }
-     ```
-  4. Proceed to Step 2
+These are mutually exclusive: setting one clears the other.
 
-**`coding.enabled` is explicitly `false`** → skip to Step 7 silently. The user has opted out.
+### Pre-load short-circuit (runs BEFORE calling config-loading)
 
-**`coding.enabled` is `true`** → proceed to Step 2.
+**Disk authority principle:** session state (cache or decline) only short-circuits when the disk has nothing to say. If any config file exists on disk, defer to config-loading so disk edits are respected.
+
+Quick disk check:
+- `project_exists = test -e <repo>/.superpowers/review-config.json`
+- `global_exists  = test -e ${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json`
+
+If **neither** file exists (config-loading would otherwise enter Setup UX):
+- `session_coding_cache` set → set `merged_config = { coding: <session_coding_cache> }`, skip the config-loading call, and proceed to Step 2.
+- `session_coding_decline` is `true` → skip to Step 7 (Fallback) silently. The config-loading call is also skipped to avoid re-prompting via Setup UX.
+- Neither set → fall through to "Load config" below.
+
+If **at least one** file exists → fall through to "Load config" below regardless of session state. Disk is authoritative; session state acts only as a fallback inside Cases (case 2) when the loaded config has no coding block.
+
+### Load config
+
+Follow `skills/requesting-code-review/config-loading.md` with `caller_intent="coding"`. It returns `{ merged_config, source }`.
+
+### Cases
+
+Decide what to do based on `source` and the presence/value of `merged_config.coding`. Check in order; first match wins:
+
+1. **`source == "user-declined"`** → set `session_coding_decline = true`, clear `session_coding_cache`, then skip to Step 7 (Fallback) silently. The user cancelled during config-loading's Setup UX; do not prompt again this session.
+
+2. **`merged_config.coding` is absent** (at least one config exists on disk but lacks a `coding` block) → consult session state, then prompt only if neither is set:
+
+   - If `session_coding_cache` is set → use it as the effective `merged_config.coding` and proceed to Step 2 silently. (No re-prompt; user already configured coding earlier in this session.)
+   - Else if `session_coding_decline` is `true` → skip to Step 7 (Fallback) silently. (User already declined this session.)
+   - Else → prompt the user:
+
+     > "Multi-AI coding dispatch is available but not configured. To route implementation tasks to external AI providers (e.g., different providers for frontend vs backend), set up a `coding` section now. Would you like to?"
+
+     - If user **declines** → set `session_coding_decline = true`, clear `session_coding_cache`, and skip to Step 7 (Fallback). Do not prompt again this session.
+     - If user **agrees** → guide them through setup:
+       a. Ask which default provider to use (scan `skills/requesting-code-review/providers/` for available CLIs).
+       b. Ask if they want category-specific rules (e.g., frontend → claude-code, backend → codex).
+       c. Build the coding delta from the user's answers:
+          ```json
+          {
+            "coding": {
+              "enabled": true,
+              "default_provider": "<chosen>",
+              "rules": [
+                { "category": "frontend", "provider": "claude-code" },
+                { "category": "backend",  "provider": "codex" }
+              ]
+            }
+          }
+          ```
+       d. Call the **Save-Location Helper** in `skills/requesting-code-review/config-loading.md` with the delta. The helper returns either a written file path or the literal `"session-only"`.
+       e. Set `merged_config.coding` to the delta's `coding` block in memory and clear `session_coding_decline`. Then:
+          - If the helper returned a path → the next dispatch's call to config-loading will pick it up from disk; clear `session_coding_cache`.
+          - If the helper returned `"session-only"` → set `session_coding_cache` to the delta's `coding` block so subsequent dispatches reuse it without re-prompting.
+
+          Either way, proceed to Step 2 with the in-memory `coding` block.
+
+3. **`merged_config.coding.enabled === false`** → skip to Step 7 silently. The user has opted out. (Disk wins over any session cache; do not clear session state — the user may revert the disk edit later.)
+
+4. **Otherwise** (`merged_config.coding` is present and `enabled` is `true` or absent — treat absent as `true` for backward compatibility with configs that only set `default_provider` or `rules`) → before proceeding to Step 2, populate the session cache for next time: if `source == "session-only"` AND `session_coding_cache` is unset → set `session_coding_cache` to `merged_config.coding` and clear `session_coding_decline`. (No-op when `source == "merged"`, since disk is authoritative.) Then proceed to Step 2.
 
 ## Step 2: Resolve Provider
 

@@ -1,5 +1,18 @@
 # Superpowers Release Notes
 
+## v5.0.10 (2026-05-07)
+
+### User Global Review/Coding Config (fork-specific)
+
+Adds a user global config layer so personal defaults (preferred review provider, default coding routing) can live in `$HOME` instead of being copied into every project. Project config remains the per-project override.
+
+- **Two-layer config** — `${XDG_CONFIG_HOME:-~/.config}/superpowers/review-config.json` (user global, optional) and `.superpowers/review-config.json` (project, optional). Both files share the same schema. When both exist, project keys override global keys at the same path; the `coding.rules` array specifically merges by `category` (project overrides individual rules, keeping global entries for categories the project didn't redefine). An explicit empty array `"rules": []` in the project config clears global rules for that project.
+- **New shared procedure** — `skills/requesting-code-review/config-loading.md` centralizes path resolution, file loading, error handling (malformed JSON warns and is treated as empty; unknown keys warn and are dropped), merge semantics, and the first-time setup UX. Both `review-dispatch.md` (Step 2) and `coding-dispatch.md` (Step 1) delegate to it instead of reading `review-config.json` directly.
+- **Setup UX** — when neither config exists, the user picks a provider and then a save location (global / project / session-only). Existing users with a project config see no change.
+- **Session-scoped choices stick** — `coding-dispatch.md` Step 1 caches both decline and session-only choices for the whole conversation, so a user who once declines or once configures-without-saving is not re-prompted on every subsequent task.
+- **XDG-aware** — the global path honors `XDG_CONFIG_HOME` if set; otherwise falls back to `$HOME/.config/superpowers/`.
+- **Backward compatible** — projects with only `.superpowers/review-config.json` work unchanged; the global file is purely additive.
+
 ## v5.0.9 (2026-05-07)
 
 ### Multi-AI Coding Dispatch (fork-specific)
