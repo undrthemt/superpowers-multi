@@ -14,35 +14,38 @@ The caller provides:
 
 ## Step 1: Check Coding Enabled
 
-Read `.superpowers/review-config.json`.
+Load the merged config by following `skills/requesting-code-review/config-loading.md` with `caller_intent="coding"`. It returns `{ merged_config, source }`.
 
-**Config file does not exist OR `coding` key is absent** → prompt the user:
+Decide what to do based on `source` and the presence/value of `merged_config.coding`. Check in order; first match wins:
 
-> "Multi-AI coding dispatch is available but not configured. To route implementation tasks to external AI providers (e.g., different providers for frontend vs backend), add a `coding` section to `.superpowers/review-config.json`. Would you like to set it up now?"
+1. **`source == "user-declined"`** → skip to Step 7 (Fallback) silently. The user already declined to configure during config-loading; do not prompt again.
 
-- If user **declines** → skip to Step 7 (Fallback). Remember this choice for the session — do not prompt again.
-- If user **agrees** → guide them through setup:
-  1. Ask which default provider to use (scan `skills/requesting-code-review/providers/` for available CLIs)
-  2. Ask if they want category-specific rules (e.g., frontend → claude-code, backend → codex)
-  3. Write the `coding` section to `.superpowers/review-config.json` (create file if needed). Target structure:
-     ```json
-     {
-       "review_provider": "codex",
-       "coding": {
-         "enabled": true,
-         "default_provider": "codex",
-         "rules": [
-           { "category": "frontend", "provider": "claude-code" },
-           { "category": "backend", "provider": "codex" }
-         ]
-       }
-     }
-     ```
-  4. Proceed to Step 2
+2. **`merged_config.coding` is absent** (either `source == "merged"` from a config that has no `coding` key, or `source == "session-only"` for a review-only setup) → prompt the user:
 
-**`coding.enabled` is explicitly `false`** → skip to Step 7 silently. The user has opted out.
+   > "Multi-AI coding dispatch is available but not configured. To route implementation tasks to external AI providers (e.g., different providers for frontend vs backend), set up a `coding` section now. Would you like to?"
 
-**`coding.enabled` is `true`** → proceed to Step 2.
+   - If user **declines** → skip to Step 7 (Fallback). Remember this choice for the session — do not prompt again.
+   - If user **agrees** → guide them through setup:
+     a. Ask which default provider to use (scan `skills/requesting-code-review/providers/` for available CLIs).
+     b. Ask if they want category-specific rules (e.g., frontend → claude-code, backend → codex).
+     c. Use the **Save-Location Helper** in `skills/requesting-code-review/config-loading.md` to choose where to write (global / project / session-only). Pass the delta:
+        ```json
+        {
+          "coding": {
+            "enabled": true,
+            "default_provider": "<chosen>",
+            "rules": [
+              { "category": "frontend", "provider": "claude-code" },
+              { "category": "backend",  "provider": "codex" }
+            ]
+          }
+        }
+        ```
+     d. Re-run config loading; proceed to Step 2.
+
+3. **`merged_config.coding.enabled === false`** → skip to Step 7 silently. The user has opted out.
+
+4. **Otherwise** (`merged_config.coding` is present and `enabled` is `true` or absent — treat absent as `true` for backward compatibility with configs that only set `default_provider` or `rules`) → proceed to Step 2.
 
 ## Step 2: Resolve Provider
 
