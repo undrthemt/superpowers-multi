@@ -255,11 +255,15 @@ Three states:
 
 ## 9. Error Handling
 
+`config-loading.md` is the canonical source for these states; if this table diverges, the procedure file wins.
+
 | Event | Location | Behavior | User-visible message |
 |---|---|---|---|
-| Project config JSON parse failure | config-loading Step 2 | Treat as empty; continue with global | `⚠ Project config <path> failed to parse: <reason>; ignoring.` |
-| Global config JSON parse failure | config-loading Step 2 | Treat as empty; continue with project | `⚠ Global config <path> failed to parse: <reason>; ignoring.` |
-| Both files unreadable | config-loading Step 2 → Step 6 | Both treated as empty; bootstrap to setup UX | Both warnings + `Both configs unreadable. Falling back to interactive setup.` |
+| Project config JSON parse failure | config-loading Step 2 | Treat as `{}` with `had_parse_error = true`; continue with global | `⚠ Project config <path> failed to parse: <reason>; ignoring.` |
+| Global config JSON parse failure | config-loading Step 2 | Treat as `{}` with `had_parse_error = true`; continue with project | `⚠ Global config <path> failed to parse: <reason>; ignoring.` |
+| Non-object root (e.g. `null`, `[…]`, `42`, `"x"`) | config-loading Step 2 (root-type guard) | Treat as `{}` with `had_parse_error = true`; continue | `⚠ <role> config <path> has non-object root (got <jq type>); ignoring.` |
+| Both files had a parse or root-type failure | config-loading Step 2 → Step 3 → Step 6 | Both treated as `{}`; bootstrap to setup UX with explicit notice | Both per-file warnings + `Both configs unreadable. Falling back to interactive setup.` |
+| Both files empty after Step 2 (any non-loud combination: missing / valid `{}` / unknown-keys-only / one-side-only parse-error) | config-loading Step 2 → Step 3 → Step 6 | Both treated as `{}`; bootstrap to setup UX silently | Per-file warnings already shown in Step 2; no extra notice |
 | Unknown key | config-loading Step 2 | Drop key; continue | `⚠ Unknown key '<dotted-path>' in <file>; ignored.` |
 | Typed validation failure | config-loading Step 2 | Drop key; continue | `⚠ Invalid value for '<dotted-path>' in <file> (expected <type>); ignored.` |
 | `review_provider` value lacks matching `providers/<name>.json` | review-dispatch.md Step 3 (existing) | Show "Unknown review provider"; reselect (session) | Existing |
