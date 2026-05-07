@@ -118,7 +118,7 @@ Triggered only when both files are empty after Step 2.
    - `review`: `Code review provider is not configured. Pick one to use.`
    - `coding`: `Multi-AI coding dispatch is not configured. Pick a provider to set up.`
 
-3. **Provider selection.** Present the `available` list (name + description from each provider JSON). Ask the user to pick one. If they cancel/abort → return `{ merged_config: {}, source: "user-declined" }`.
+3. **Provider selection.** Present the `available` list (name + description from each provider JSON). Ask the user to pick one. Treat any of these as cancellation: an explicit "cancel" / "abort" / "no" reply, an empty input, or Ctrl-C. On cancellation → return `{ merged_config: {}, source: "user-declined" }`.
 
 4. **Build the delta.** Start with `delta = { "review_provider": "<picked>" }`.
 
@@ -129,11 +129,11 @@ Triggered only when both files are empty after Step 2.
 
    At this point the delta represents the complete config the user wants to persist.
 
-5. **Save-location prompt.** Call the **Save-Location Helper** below with the full `delta` from step 4.
+5. **Save-location prompt.** Call the **Save-Location Helper** below with the full `delta` from step 4. The helper returns either a written file path (string) or the literal `"session-only"`.
 
-6. Return:
-   - If saved (global or project): `{ merged_config: <delta>, source: "merged" }`.
-   - If session-only: `{ merged_config: <delta>, source: "session-only" }`.
+6. Return based on the helper's return value:
+   - If the helper returned a path (saved to global or project): `{ merged_config: <delta>, source: "merged" }`.
+   - If the helper returned `"session-only"`: `{ merged_config: <delta>, source: "session-only" }`.
 
 ## Save-Location Helper
 
@@ -152,7 +152,7 @@ A reusable subroutine. Used by Step 6 above and by `coding-dispatch.md`'s coding
    C. Don't save (session only) — remember just for this session
    ```
 
-2. Read the user's choice (A / B / C).
+2. Read the user's choice (A / B / C). If the input is anything else (empty, "D", arbitrary text), reprint the three choices and ask again. Treat an explicit "cancel" / "abort" reply or Ctrl-C as choice C (session-only).
 
 3. **A or B:**
    a. Resolve target path (`global_path` for A, `project_path` for B).
@@ -182,4 +182,4 @@ A reusable subroutine. Used by Step 6 above and by `coding-dispatch.md`'s coding
 ## Caller Integration Notes
 
 - `review-dispatch.md` Step 2 calls this procedure with `caller_intent="review"` and uses `merged_config.review_provider` for downstream provider resolution. If `source == "user-declined"` or `merged_config.review_provider` is undefined after a non-bootstrap merge, the dispatcher proceeds to its existing scan-and-prompt fallback.
-- `coding-dispatch.md` Step 1 calls this procedure with `caller_intent="coding"` and uses `merged_config.coding` for downstream routing. Treat absent `coding` or `coding.enabled !== true` per the existing "coding disabled" path.
+- `coding-dispatch.md` Step 1 calls this procedure with `caller_intent="coding"` and uses `merged_config.coding` for downstream routing. Treat `coding` absent as "needs setup" (prompt the user) and `coding.enabled === false` as "disabled" (silent fallback). When `coding` is present but `coding.enabled` is absent, treat it as `true` (backward compatibility with configs that only set `default_provider` or `rules`).

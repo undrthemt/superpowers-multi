@@ -28,7 +28,7 @@ Decide what to do based on `source` and the presence/value of `merged_config.cod
    - If user **agrees** → guide them through setup:
      a. Ask which default provider to use (scan `skills/requesting-code-review/providers/` for available CLIs).
      b. Ask if they want category-specific rules (e.g., frontend → claude-code, backend → codex).
-     c. Use the **Save-Location Helper** in `skills/requesting-code-review/config-loading.md` to choose where to write (global / project / session-only). Pass the delta:
+     c. Build the coding delta from the user's answers:
         ```json
         {
           "coding": {
@@ -41,7 +41,8 @@ Decide what to do based on `source` and the presence/value of `merged_config.cod
           }
         }
         ```
-     d. Re-run config loading; proceed to Step 2.
+     d. Call the **Save-Location Helper** in `skills/requesting-code-review/config-loading.md` with the delta. The helper returns either a written file path or the literal `"session-only"`.
+     e. Update `merged_config.coding` in memory with the delta's `coding` block (so subsequent dispatchers in this session see the new routing whether or not the user chose to persist). If the helper returned a path, the next call to config-loading will pick it up from disk; if it returned `"session-only"`, this in-memory update is the only record. Either way, proceed to Step 2 with the in-memory `coding` block.
 
 3. **`merged_config.coding.enabled === false`** → skip to Step 7 silently. The user has opted out.
 
