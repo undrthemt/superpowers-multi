@@ -20,9 +20,13 @@ Based on review_type:
 
 Check in this order (first match wins):
 
-1. **User explicitly named a provider** in the current request (e.g. "review with gemini") → use that provider name
-2. **Config file exists** at `.superpowers/review-config.json` → use the `review_provider` value
-3. **No config, no explicit request** → discover and ask:
+1. **User explicitly named a provider** in the current request (e.g. "review with gemini") → use that provider name. Skip to Step 3.
+
+2. **Load merged config** by following `./config-loading.md` with `caller_intent="review"`. It returns `{ merged_config, source }`.
+   - If `merged_config.review_provider` is set → use it. Skip to Step 3.
+   - If `source == "user-declined"` and `merged_config.review_provider` is unset → notify "No review provider configured." and proceed to step 2.3.
+
+3. **No provider resolved** → discover and ask:
    a. Scan `skills/requesting-code-review/providers/` for all `*.json` files
    b. For each provider, run its `detect` command to check if the CLI is installed
    c. Present the user with available providers: name + description
