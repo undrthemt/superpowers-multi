@@ -177,15 +177,18 @@ A type violation produces a warning and the offending key is excluded.
    - `project_path = "<repo>/.superpowers/review-config.json"`
    - `global_path  = "${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json"`
 
-2. **Load both files**
-   For each path:
-   - Missing file → treat as `{}`.
-   - JSON parse failure → emit warning, treat as `{}`.
+2. **Load both files** (per-file: produce `cfg` plus a `had_parse_error` flag)
+   - Missing file → treat as `{}`, `had_parse_error = false`.
+   - JSON parse failure (`jq .` fails) → emit warning, treat as `{}`, `had_parse_error = true`.
+   - Non-object root (parses, but root is `null` / array / number / string / boolean — caught by an explicit `jq -e 'type == "object"'` guard) → emit warning, treat as `{}`, `had_parse_error = true`.
    - Drop unknown keys (warn). Drop typed-validation failures (warn).
 
-3. **Bootstrap detection**
-   - If both `project_cfg` and `global_cfg` are completely empty (no file or empty content), go to Step 6 (Setup UX).
-   - Otherwise, Step 4.
+3. **Bootstrap detection** — if both `project_cfg` and `global_cfg` are empty after Step 2:
+   - Both `had_parse_error` true → emit notice `Both configs unreadable. Falling back to interactive setup.`, then go to Step 6 (Setup UX).
+   - Any other empty combination (missing / valid `{}` / unknown-keys-only / one-side-only parse-error) → go to Step 6 silently.
+   - If at least one of `project_cfg` or `global_cfg` has any valid keys → Step 4.
+
+   `config-loading.md` Step 2/3 is canonical for this partition; if this summary diverges, the procedure file wins.
 
 4. **Merge** per Section 6 to produce `merged_config`.
 
