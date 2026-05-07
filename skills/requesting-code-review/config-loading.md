@@ -25,14 +25,15 @@ PROJECT_PATH=".superpowers/review-config.json"
 
 ## Step 2: Load Both Files
 
-For each path (global, then project), produce a `cfg` object as follows:
+For each path (global, then project), produce a `cfg` object **and** a `had_parse_error` boolean as follows. (`<role>` is "Project" or "Global" depending on which file is being loaded.)
 
-1. **File missing** → `cfg = {}`. No warning.
-2. **Read file**. If `jq -e . "<path>" >/dev/null 2>&1` fails (malformed JSON) → emit warning `⚠ <role> config <path> failed to parse: <jq error>; ignoring.` (where `<role>` is "Project" or "Global") and set `cfg = {}`.
-3. **Drop unknown keys**. Walk the parsed object; for any key not in the known-key list (below), emit warning `⚠ Unknown key '<dotted-path>' in <path>; ignored.` and exclude it.
-4. **Type-check known keys**. For any known key whose value type does not match the expected type (below), emit warning `⚠ Invalid value for '<dotted-path>' in <path> (expected <type>); ignored.` and exclude it.
+1. **File missing** → `cfg = {}`, `had_parse_error = false`. No warning.
+2. **Parse the file** with `jq . "<path>" >/dev/null 2>&1` (note: plain `jq .`, not `jq -e .` — the latter exits non-zero for valid JSON values like `null` or `false`). If it fails (malformed JSON) → emit warning `⚠ <role> config <path> failed to parse: <jq error>; ignoring.`, set `cfg = {}`, `had_parse_error = true`. Skip the remaining substeps.
+3. **Root-type guard.** If the parsed root is not a JSON object — i.e. `jq -e 'type == "object"' "<path>"` exits non-zero (root is `null`, an array, a number, a string, or a boolean) → emit warning `⚠ <role> config <path> has non-object root (got <jq type>); ignoring.`, set `cfg = {}`, `had_parse_error = true`. Skip the remaining substeps.
+4. **Drop unknown keys**. Walk the parsed object; for any key not in the known-key list (below), emit warning `⚠ Unknown key '<dotted-path>' in <path>; ignored.` and exclude it.
+5. **Type-check known keys**. For any known key whose value type does not match the expected type (below), emit warning `⚠ Invalid value for '<dotted-path>' in <path> (expected <type>); ignored.` and exclude it.
 
-After Step 2 you have `project_cfg` and `global_cfg`, each a (possibly empty) object containing only valid known keys.
+After Step 2 you have `project_cfg` and `global_cfg`, each a (possibly empty) object containing only valid known keys, plus the per-file `project_had_parse_error` / `global_had_parse_error` flags used by Step 3.
 
 ### Known keys
 
@@ -49,12 +50,10 @@ For each `coding.rules[]` entry: drop unknown sub-keys with a warning of the for
 
 ## Step 3: Bootstrap Detection
 
-Define a per-file predicate `unreadable(cfg, path)`: the file at `path` exists on disk AND was non-empty AND `cfg` ended up as `{}` after Step 2.
-
 If `project_cfg == {}` AND `global_cfg == {}`:
 
-- If `unreadable(project_cfg, project_path)` AND `unreadable(global_cfg, global_path)` → emit the notice `Both configs unreadable. Falling back to interactive setup.` then go to **Step 6 (Setup UX)**.
-- Otherwise (both files genuinely missing or empty, or only one was on-disk and that one was unreadable) → go to **Step 6 (Setup UX)** silently.
+- If `project_had_parse_error` AND `global_had_parse_error` (both files were on disk and both failed to parse or had a non-object root) → emit the notice `Both configs unreadable. Falling back to interactive setup.` then go to **Step 6 (Setup UX)**.
+- Otherwise (any combination of: missing, valid `{}`, all-unknown-keys-after-stripping, or one-side-only parse-error) → go to **Step 6 (Setup UX)** silently. Per-file warnings already emitted in Step 2 are sufficient context; no additional notice is needed.
 
 If at least one of `project_cfg` or `global_cfg` has any valid keys → go to **Step 4 (Merge)**.
 
@@ -171,9 +170,11 @@ A reusable subroutine. Used by Step 6 above and by `coding-dispatch.md`'s coding
 
 | Event | Behavior |
 |---|---|
-| Project JSON parse failure | Warn; treat as `{}`; continue with global. |
-| Global JSON parse failure | Warn; treat as `{}`; continue with project. |
-| Both unreadable | Warn each; treat both as `{}`; emit notice `Both configs unreadable. Falling back to interactive setup.`; bootstrap to Setup UX. |
+| Project JSON parse failure | Warn; treat as `{}` with `had_parse_error = true`; continue with global. |
+| Global JSON parse failure | Warn; treat as `{}` with `had_parse_error = true`; continue with project. |
+| Non-object root (e.g. `null`, `[…]`, `42`) | Warn; treat as `{}` with `had_parse_error = true`; continue. |
+| Both files had a parse or root-type failure | Warn each; treat both as `{}`; emit notice `Both configs unreadable. Falling back to interactive setup.`; bootstrap to Setup UX. |
+| Both files empty / unknown-keys-only / mixed-with-one-error | Bootstrap to Setup UX silently (per-file warnings already shown in Step 2). |
 | Unknown key | Warn; drop key; continue. |
 | Type validation failure | Warn; drop key; continue. |
 | Setup UX cancelled | Return `source: "user-declined"`; caller decides fallback. |

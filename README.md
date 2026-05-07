@@ -8,7 +8,7 @@ For the core concepts, workflow, skills library, and design philosophy, see the 
 
 ### Multi-AI Code Review Dispatch
 
-Adds a configurable mechanism to dispatch code reviews to different AI providers (Codex CLI, Claude Code, etc.). The provider is selected via `review_provider` in either `${XDG_CONFIG_HOME:-~/.config}/superpowers/review-config.json` (user global; recommended for personal defaults) or `.superpowers/review-config.json` (project; overrides global per-project). Both files are optional; when both exist, project keys override global at every nesting level. Provider definitions live in `skills/requesting-code-review/providers/*.json`. Falls back to host-AI subagents when the configured provider is unavailable.
+Adds a configurable mechanism to dispatch code reviews to different AI providers (Codex CLI, Claude Code, etc.). The provider is selected via `review_provider` in either `${XDG_CONFIG_HOME:-~/.config}/superpowers/review-config.json` (user global; recommended for personal defaults) or `.superpowers/review-config.json` (project; overrides global per-project). Both files are optional; when both exist, project keys override global by key — with `coding.rules` as the documented exception (merged by `category`; see below). Provider definitions live in `skills/requesting-code-review/providers/*.json`. Falls back to host-AI subagents when the configured provider is unavailable.
 
 - **requesting-code-review** — reviews dispatch to the configured provider with automatic host-AI fallback
 - **subagent-driven-development** — both stages of the two-stage review (spec compliance + code quality) and the final whole-implementation review go through the same dispatch. Final review uses `git merge-base` for stable diff boundaries
@@ -36,7 +36,7 @@ Routes implementation tasks to AI providers by task category, so frontend and ba
 - **subagent-driven-development** — before the host implementer runs, each task is classified (`frontend` / `backend` / `fullstack`) via plan tag or AI auto-classification, then routed to the configured provider. Results are validated (file changes, non-empty output, no timeout) before passing into the existing two-stage review. On failure or when disabled, falls back to the existing host implementer
 - **writing-plans** — plan tasks can include an optional `category:` field that overrides auto-classification
 - **Provider-agnostic coding template** — `coding-prompt.md` is used by all providers; provider JSON files may add `invoke_coding` / `plugin_override_coding` for coding-specific CLI args
-- **Backward compatible** — when `coding.enabled` is `false` or absent, the existing implementer flow is unchanged
+- **Backward compatible** — when the `coding` block is absent or `coding.enabled` is `false`, the existing implementer flow is unchanged. (`coding.enabled` defaults to `true` when omitted from a `coding` block, so configs that only set `default_provider` or `rules` remain active.)
 
 ## Prerequisites
 

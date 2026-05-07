@@ -218,19 +218,22 @@ Triggered only when both configs are empty.
 
 3. User picks a provider from the available list.
 
-4. Save-location prompt (3 choices via setup helper):
+4. **Build the full delta first.** Start with `delta = { "review_provider": "<picked>" }`.
+   If `caller_intent == "coding"`, continue the in-memory dialogue (default_provider, optional category rules) and add `delta.coding = { "enabled": true, "default_provider": ..., "rules": [...] }` to the delta before any disk write.
+
+5. Save-location prompt (3 choices via setup helper) — runs **once**, with the complete delta:
    A. User global (recommended) — uses ${XDG_CONFIG_HOME:-~/.config}/superpowers/review-config.json
    B. This project only         — uses <repo>/.superpowers/review-config.json
    C. Don't save (session only) — remembers for this session only
 
-5. Apply choice:
-   - A → write { "review_provider": "<picked>" } to global path.
-         If caller_intent == "coding", continue with the existing coding-dispatch.md
-         setup flow (default_provider + rules) and append to the same file.
+6. Apply choice:
+   - A → merge `delta` into the existing global file (Step 4 read-side merge rules; `delta` plays the role of the override side).
    - B → same as A but to the project path.
-   - C → store in memory; no file write.
+   - C → store the delta in memory; no file write.
 
-6. Return { merged_config, source }.
+7. Return { merged_config, source }.
+
+**Note:** `config-loading.md` is the canonical source of truth for this flow. If this section diverges from `config-loading.md`, the procedure file wins.
 ```
 
 ### Cancellation handling
