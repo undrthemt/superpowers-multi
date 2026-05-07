@@ -105,4 +105,5 @@ You: [Fix progress indicators]
 See:
 - `review-prompt.md` - Code quality review template (provider-agnostic)
 - `review-dispatch.md` - Dispatch logic (provider resolution, CLI invocation, fallback)
+- `config-loading.md` - Shared config loading: global + project layering, merge, setup UX
 - `providers/` - Provider definitions (codex.json, claude-code.json)
