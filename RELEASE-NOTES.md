@@ -1,5 +1,44 @@
 # Superpowers Release Notes
 
+## v5.0.9 (2026-05-07)
+
+### Multi-AI Coding Dispatch (fork-specific)
+
+Extends the multi-AI dispatch system to also route implementation tasks, with category-based provider selection so frontend and backend work can be handled by different AI providers. (#6)
+
+- **subagent-driven-development** — before the host implementer is dispatched, each task is classified into a category (`frontend` / `backend` / `fullstack`) via plan tag or AI auto-classification, then routed to the configured provider through the new `coding-dispatch.md` 7-step flow (check enabled → resolve provider by category rules → load provider definition → plugin override → CLI dispatch → result validation → fallback). Validation checks committed and uncommitted file changes, non-empty output, and timeout exit. Q&A handling supports up to 2 CLI re-executions or 3 subagent rounds before falling back. On failure or when disabled, the existing host implementer flow is unchanged.
+- **writing-plans** — added optional `category: frontend | backend | fullstack` task tag for explicit routing when auto-classification might get it wrong (e.g., a UI test file living in a backend test directory).
+- **Shared provider definitions** — `skills/requesting-code-review/providers/codex.json` and `claude-code.json` extended with optional `invoke_coding` and `plugin_override_coding` fields. Coding inherits from the existing `invoke` / `plugin_override` per-field when not overridden, so the same JSON serves both review and coding dispatch.
+- **Provider-agnostic coding template** — new `skills/subagent-driven-development/coding-prompt.md` mirrors the structure of the review templates. The existing `implementer-prompt.md` is preserved as the host-AI fallback.
+- **Config** — opt-in via a new `coding` section in `.superpowers/review-config.json`. Example:
+  ```json
+  {
+    "review_provider": "codex",
+    "coding": {
+      "enabled": true,
+      "default_provider": "codex",
+      "rules": [
+        { "category": "frontend", "provider": "claude-code" },
+        { "category": "backend", "provider": "codex" }
+      ]
+    }
+  }
+  ```
+  When `coding.enabled` is `false` or absent, behavior is unchanged. When the `coding` key is missing, the user is prompted once per session to configure it (or decline silently).
+
+### Generic Provider-Based Review Dispatch (fork-specific)
+
+Generalized the previous Codex-first review system into a provider-agnostic dispatch mechanism, so reviews can be routed to any configured AI CLI. (#4)
+
+- **review-dispatch.md** — new centralized dispatch logic at `skills/requesting-code-review/review-dispatch.md`. All review skills (requesting-code-review, subagent-driven-development, executing-plans) now reference this file instead of containing their own dispatch logic.
+- **Provider definitions** — `skills/requesting-code-review/providers/*.json` declares a CLI's `name`, `description`, `detect`, `invoke` (command/args/input_method/timeout), and an optional `plugin_override` (host AI + subagent type). Currently bundled: Codex CLI, Claude Code.
+- **Provider-agnostic templates** — `review-prompt.md` (code quality) and `spec-review-prompt.md` (spec compliance) replace the Codex/Claude-specific template pair.
+- **Config** — provider selected via `review_provider` in `.superpowers/review-config.json`. Without a config, the system scans available providers, presents the list, and remembers the choice for the session.
+
+### Maintenance
+
+- **Version sync** — `gemini-extension.json` was lagging at 5.0.7 while the rest of the declared files were at 5.0.8; this release brings all five declared files back in sync at 5.0.9.
+
 ## v5.0.8 (2026-04-22)
 
 ### Codex-First Code Review
