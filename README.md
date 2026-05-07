@@ -8,7 +8,7 @@ For the core concepts, workflow, skills library, and design philosophy, see the 
 
 ### Multi-AI Code Review Dispatch
 
-Adds a configurable mechanism to dispatch code reviews to different AI providers (Codex CLI, Claude Code, etc.). The provider is selected via `.superpowers/review-config.json` (`review_provider` key) and provider definitions live in `skills/requesting-code-review/providers/*.json`. Falls back to host-AI subagents when the configured provider is unavailable.
+Adds a configurable mechanism to dispatch code reviews to different AI providers (Codex CLI, Claude Code, etc.). The provider is selected via `review_provider` in either `${XDG_CONFIG_HOME:-~/.config}/superpowers/review-config.json` (user global; recommended for personal defaults) or `.superpowers/review-config.json` (project; overrides global per-project). Both files are optional; when both exist, project keys override global at every nesting level. Provider definitions live in `skills/requesting-code-review/providers/*.json`. Falls back to host-AI subagents when the configured provider is unavailable.
 
 - **requesting-code-review** — reviews dispatch to the configured provider with automatic host-AI fallback
 - **subagent-driven-development** — both stages of the two-stage review (spec compliance + code quality) and the final whole-implementation review go through the same dispatch. Final review uses `git merge-base` for stable diff boundaries
@@ -17,7 +17,7 @@ Adds a configurable mechanism to dispatch code reviews to different AI providers
 
 ### Multi-AI Coding Dispatch
 
-Routes implementation tasks to AI providers by task category, so frontend and backend work can be handled by different providers. Configured via the `coding` key in `.superpowers/review-config.json`:
+Routes implementation tasks to AI providers by task category, so frontend and backend work can be handled by different providers. Configured via the `coding` key in the same `review-config.json` files described above (global at `${XDG_CONFIG_HOME:-~/.config}/superpowers/`, project at `<repo>/.superpowers/`). The `coding.rules` array merges by `category`: a project override of `backend` keeps the global `frontend` entry intact. An empty `rules: []` in the project config explicitly disables global rules for that project.
 
 ```json
 {
@@ -43,7 +43,7 @@ Routes implementation tasks to AI providers by task category, so frontend and ba
 Works out of the box with no additional dependencies. For enhanced multi-AI dispatch:
 
 - **Codex Plugin (recommended):** When the [Codex plugin](https://github.com/openai/codex) for Claude Code is installed, reviews and coding tasks can be dispatched via Codex for an independent perspective. Without the plugin, both fall back to host-AI subagents (fully functional).
-- **Optional `.superpowers/review-config.json`:** Configure `review_provider` and the `coding` section to control routing. Without a config, the system prompts to set one up the first time it runs.
+- **Optional global config** at `${XDG_CONFIG_HOME:-~/.config}/superpowers/review-config.json` (recommended for personal defaults across all projects) **and/or project config** at `.superpowers/review-config.json` (overrides global per-project). Both are optional. Without either, the system prompts to set one up the first time it runs and asks where to save (global / project / session-only).
 
 ## Installation
 
