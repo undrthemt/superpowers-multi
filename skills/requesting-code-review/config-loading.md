@@ -45,13 +45,16 @@ After Step 2 you have `project_cfg` and `global_cfg`, each a (possibly empty) ob
 | `coding.rules` | array |
 | `coding.rules[]` | object with exactly `category: string` and `provider: string` (extra fields treated as unknown) |
 
-Invalid `coding.rules[]` entries are dropped individually with the same warning format.
+For each `coding.rules[]` entry: drop unknown sub-keys with a warning of the form `⚠ Unknown sub-key 'coding.rules[<i>].<key>' in <path>; ignored.` and keep the entry. If `category` or `provider` is missing or wrong-typed, drop the entire entry with a single warning `⚠ Invalid 'coding.rules[<i>]' in <path>; ignored.`.
 
 ## Step 3: Bootstrap Detection
 
-If both `project_cfg` and `global_cfg` are completely empty objects (no valid keys after Step 2) → go to **Step 6 (Setup UX)**.
+If both `project_cfg` and `global_cfg` are completely empty objects (no valid keys after Step 2):
 
-Otherwise → go to **Step 4 (Merge)**.
+- If both files were **non-empty on disk but failed to parse / had no valid keys** (i.e., at least one parse-failure or all-keys-dropped warning was emitted in Step 2) → emit a final notice `Both configs unreadable. Falling back to interactive setup.` then go to **Step 6 (Setup UX)**.
+- Otherwise (both files genuinely missing or empty) → go to **Step 6 (Setup UX)** silently.
+
+If at least one of `project_cfg` or `global_cfg` has any valid keys → go to **Step 4 (Merge)**.
 
 ## Step 4: Merge
 
@@ -115,23 +118,20 @@ Triggered only when both files are empty after Step 2.
 
 3. **Provider selection.** Present the `available` list (name + description from each provider JSON). Ask the user to pick one. If they cancel/abort → return `{ merged_config: {}, source: "user-declined" }`.
 
-4. **Save-location prompt** (call the **Save-Location Helper** below with the pending delta `{ "review_provider": "<picked>" }`).
+4. **Build the delta.** Start with `delta = { "review_provider": "<picked>" }`.
 
-5. **If caller_intent == "coding" and the user picked a save location (not session-only):** continue with the existing coding-dispatch.md setup flow:
-   a. Ask whether they want a `default_provider` (defaults to the picked provider).
-   b. Ask whether they want category-specific rules. If yes, prompt for entries (e.g., `frontend → claude-code`, `backend → codex`) until they say "done".
-   c. Append a `coding` section to the same file the helper just wrote:
-      ```json
-      "coding": {
-        "enabled": true,
-        "default_provider": "<chosen>",
-        "rules": [ ... ]
-      }
-      ```
+   **If `caller_intent == "coding"`**, extend the delta with a `coding` block by asking the user, in order:
+   a. Default provider for coding (default: the provider picked in step 3).
+   b. Whether to add category-specific rules. If yes, prompt for `category → provider` pairs (e.g., `frontend → claude-code`, `backend → codex`) until the user says "done".
+   c. Set `delta.coding = { "enabled": true, "default_provider": "<chosen>", "rules": [<entries or empty>] }`.
+
+   At this point the delta represents the complete config the user wants to persist.
+
+5. **Save-location prompt.** Call the **Save-Location Helper** below with the full `delta` from step 4.
 
 6. Return:
-   - If saved (global or project): `{ merged_config: <what was written>, source: "merged" }`.
-   - If session-only: `{ merged_config: { "review_provider": "<picked>", ...optional coding... }, source: "session-only" }`.
+   - If saved (global or project): `{ merged_config: <delta>, source: "merged" }`.
+   - If session-only: `{ merged_config: <delta>, source: "session-only" }`.
 
 ## Save-Location Helper
 
@@ -155,7 +155,10 @@ A reusable subroutine. Used by Step 6 above and by `coding-dispatch.md`'s coding
 3. **A or B:**
    a. Resolve target path (`global_path` for A, `project_path` for B).
    b. `mkdir -p "$(dirname "<path>")"`.
-   c. If the file exists, read it and `jq -s '.[0] * .[1]'` merge with `delta` (deep merge, project_cfg-style — for arrays use the same Level 3 rules; for the writing case here `delta` is a fresh object so simple merge is sufficient).
+   c. **Compute the new file content.** Read the existing file (or treat as `{}` if missing). Apply `delta` using the same merge rules as Step 4 (read-side merge), but with `delta` taking the role of `project_cfg` (override) and the existing file content taking the role of `global_cfg` (defaults). In particular:
+      - Top-level scalar keys (`review_provider`): replace if present in `delta`.
+      - `coding.enabled` and `coding.default_provider`: replace if present in `delta`.
+      - `coding.rules`: apply Level 3's category-keyed merge. The empty-array exception (`delta.coding.rules == []`) explicitly clears global rules in the on-disk file.
    d. Write the result. If the write fails (permission, disk), emit `⚠ Could not write to <path>: <reason>. Choose another location.` and re-prompt from step 1.
    e. Return the path.
 
