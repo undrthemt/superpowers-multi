@@ -49,10 +49,12 @@ For each `coding.rules[]` entry: drop unknown sub-keys with a warning of the for
 
 ## Step 3: Bootstrap Detection
 
-If both `project_cfg` and `global_cfg` are completely empty objects (no valid keys after Step 2):
+Define a per-file predicate `unreadable(cfg, path)`: the file at `path` exists on disk AND was non-empty AND `cfg` ended up as `{}` after Step 2.
 
-- If both files were **non-empty on disk but failed to parse / had no valid keys** (i.e., at least one parse-failure or all-keys-dropped warning was emitted in Step 2) → emit a final notice `Both configs unreadable. Falling back to interactive setup.` then go to **Step 6 (Setup UX)**.
-- Otherwise (both files genuinely missing or empty) → go to **Step 6 (Setup UX)** silently.
+If `project_cfg == {}` AND `global_cfg == {}`:
+
+- If `unreadable(project_cfg, project_path)` AND `unreadable(global_cfg, global_path)` → emit the notice `Both configs unreadable. Falling back to interactive setup.` then go to **Step 6 (Setup UX)**.
+- Otherwise (both files genuinely missing or empty, or only one was on-disk and that one was unreadable) → go to **Step 6 (Setup UX)** silently.
 
 If at least one of `project_cfg` or `global_cfg` has any valid keys → go to **Step 4 (Merge)**.
 
@@ -156,8 +158,9 @@ A reusable subroutine. Used by Step 6 above and by `coding-dispatch.md`'s coding
    a. Resolve target path (`global_path` for A, `project_path` for B).
    b. `mkdir -p "$(dirname "<path>")"`.
    c. **Compute the new file content.** Read the existing file (or treat as `{}` if missing). Apply `delta` using the same merge rules as Step 4 (read-side merge), but with `delta` taking the role of `project_cfg` (override) and the existing file content taking the role of `global_cfg` (defaults). In particular:
-      - Top-level scalar keys (`review_provider`): replace if present in `delta`.
-      - `coding.enabled` and `coding.default_provider`: replace if present in `delta`.
+      - Top-level scalar keys (`review_provider`): replace if present in `delta`; otherwise preserve existing.
+      - If `delta` has no `coding` key, leave the existing `coding` block untouched.
+      - `coding.enabled` and `coding.default_provider`: replace if present in `delta`; otherwise preserve existing.
       - `coding.rules`: apply Level 3's category-keyed merge. The empty-array exception (`delta.coding.rules == []`) explicitly clears global rules in the on-disk file.
    d. Write the result. If the write fails (permission, disk), emit `⚠ Could not write to <path>: <reason>. Choose another location.` and re-prompt from step 1.
    e. Return the path.
@@ -170,7 +173,7 @@ A reusable subroutine. Used by Step 6 above and by `coding-dispatch.md`'s coding
 |---|---|
 | Project JSON parse failure | Warn; treat as `{}`; continue with global. |
 | Global JSON parse failure | Warn; treat as `{}`; continue with project. |
-| Both unreadable | Warn each; treat both as `{}`; bootstrap to Setup UX. |
+| Both unreadable | Warn each; treat both as `{}`; emit notice `Both configs unreadable. Falling back to interactive setup.`; bootstrap to Setup UX. |
 | Unknown key | Warn; drop key; continue. |
 | Type validation failure | Warn; drop key; continue. |
 | Setup UX cancelled | Return `source: "user-declined"`; caller decides fallback. |
