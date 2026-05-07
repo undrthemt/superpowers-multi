@@ -16,6 +16,23 @@ The caller provides:
 
 Load the merged config by following `skills/requesting-code-review/config-loading.md` with `caller_intent="coding"`. It returns `{ merged_config, source }`.
 
+### Session State
+
+This dispatcher maintains two pieces of session-level state across dispatches in the same conversation:
+
+- `session_coding_decline = true` — set when the user declined coding setup in case 2; suppresses re-prompting.
+- `session_coding_cache = { enabled, default_provider, rules }` — set when the user agreed to coding setup but chose `"session-only"` save in case 2; provides the in-memory coding block for subsequent dispatches.
+
+These are mutually exclusive: setting one clears the other.
+
+### Pre-check: Apply session cache
+
+Before evaluating the cases below, if `merged_config.coding` is absent AND `session_coding_cache` is set → use `session_coding_cache` as the effective `merged_config.coding` and proceed to Step 2 (skip the cases below).
+
+If `merged_config.coding` is absent AND `session_coding_decline` is `true` → skip to Step 7 (Fallback) silently.
+
+### Cases
+
 Decide what to do based on `source` and the presence/value of `merged_config.coding`. Check in order; first match wins:
 
 1. **`source == "user-declined"`** → skip to Step 7 (Fallback) silently. The user already declined to configure during config-loading; do not prompt again.
@@ -24,7 +41,7 @@ Decide what to do based on `source` and the presence/value of `merged_config.cod
 
    > "Multi-AI coding dispatch is available but not configured. To route implementation tasks to external AI providers (e.g., different providers for frontend vs backend), set up a `coding` section now. Would you like to?"
 
-   - If user **declines** → skip to Step 7 (Fallback). Remember this choice for the session — do not prompt again.
+   - If user **declines** → set `session_coding_decline = true`, clear `session_coding_cache`, and skip to Step 7 (Fallback). Do not prompt again this session.
    - If user **agrees** → guide them through setup:
      a. Ask which default provider to use (scan `skills/requesting-code-review/providers/` for available CLIs).
      b. Ask if they want category-specific rules (e.g., frontend → claude-code, backend → codex).
@@ -42,7 +59,11 @@ Decide what to do based on `source` and the presence/value of `merged_config.cod
         }
         ```
      d. Call the **Save-Location Helper** in `skills/requesting-code-review/config-loading.md` with the delta. The helper returns either a written file path or the literal `"session-only"`.
-     e. Update `merged_config.coding` in memory with the delta's `coding` block (so subsequent dispatchers in this session see the new routing whether or not the user chose to persist). If the helper returned a path, the next call to config-loading will pick it up from disk; if it returned `"session-only"`, this in-memory update is the only record. Either way, proceed to Step 2 with the in-memory `coding` block.
+     e. Set `merged_config.coding` to the delta's `coding` block in memory and clear `session_coding_decline`. Then:
+        - If the helper returned a path → the next dispatch's call to config-loading will pick it up from disk; clear `session_coding_cache`.
+        - If the helper returned `"session-only"` → set `session_coding_cache` to the delta's `coding` block so subsequent dispatches reuse it without re-prompting.
+
+        Either way, proceed to Step 2 with the in-memory `coding` block.
 
 3. **`merged_config.coding.enabled === false`** → skip to Step 7 silently. The user has opted out.
 
