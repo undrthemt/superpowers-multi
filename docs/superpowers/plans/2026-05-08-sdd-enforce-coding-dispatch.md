@@ -25,6 +25,27 @@
 
 ---
 
+## Expected grep counts (reference)
+
+This table consolidates the count assertions scattered across Tasks 4, 5, 6, and 9. Use it during execution to sanity-check intermediate states. All counts derived by hand from the current source files (commit `884dc91`).
+
+| Verification (file is `skills/subagent-driven-development/SKILL.md` unless noted) | After Task 4 | After Task 5 | After Task 6 (final) |
+|---|---|---|---|
+| `grep -c "implementer-prompt.md"` (in `SKILL.md`) | `1` | `0` | `1` (intentional predecessor mention in Task 6's new section) |
+| `grep -c "Dispatch coding-dispatch.md (the only entry point)"` | `4` | `4` | `4` |
+| `grep -c "Implementation result (provider OR internal fallback)"` | `3` | `3` | `3` |
+| `grep -c "Coding dispatch returns result or falls back to implementer"` | `0` | `0` | `0` |
+| `grep -c "## Templates and dispatchers"` | `0` | `1` | `1` |
+| `grep -c "## Prompt Templates"` | `1` | `0` | `0` |
+| `grep -c "## Task Implementation: Always Through coding-dispatch.md"` | `0` | `0` | `1` |
+| `grep -c "implementer-prompt.md"` in `coding-dispatch.md` (after Task 3) | `0` | `0` | `0` |
+| `grep -c "coding-fallback-prompt.md"` in `coding-dispatch.md` (after Task 3) | `2` | `2` | `2` |
+| `grep -rc "implementer-prompt.md" skills/` (recursive) | — | — | `skills/subagent-driven-development/SKILL.md:1` (all other files: `0`) |
+
+If any assertion fails, do not proceed to the next task — diagnose and fix the divergence first.
+
+---
+
 ## Task 1: Rename `implementer-prompt.md` → `coding-fallback-prompt.md` and add "Internal use only" header
 
 **Files:**
@@ -171,7 +192,7 @@ See:
 - `./coding-fallback-prompt.md` — the renamed template (internal)
 ```
 
-- [ ] **Step 3: Verify the shim has no prompt body**
+- [ ] **Step 3: Verify the shim is a redirect-only stub**
 
 Run:
 ```bash
@@ -184,6 +205,18 @@ Run:
 grep -c "Task tool (general-purpose):" skills/subagent-driven-development/implementer-prompt.md
 ```
 Expected: `0` (shim must NOT contain the old prompt body).
+
+Run (positive sentinel — the shim must contain its rename notice):
+```bash
+grep -c "renamed to .coding-fallback-prompt.md." skills/subagent-driven-development/implementer-prompt.md
+```
+Expected: `1` (the rename-notice sentence is present).
+
+Run (positive sentinel — the shim must redirect editors to the dispatcher):
+```bash
+grep -c "always invoke .\\./coding-dispatch.md." skills/subagent-driven-development/implementer-prompt.md
+```
+Expected: `1` (the redirect imperative is present).
 
 Run:
 ```bash
@@ -295,6 +328,7 @@ digraph process {
         label="Per Task";
         "Classify task category (plan tag → AI auto-classification)" [shape=box];
         "Dispatch coding-dispatch.md (the only entry point)" [shape=box];
+        "Implementation result (provider OR internal fallback)" [shape=diamond];
         "Implementer subagent asks questions?" [shape=diamond];
         "Answer questions, provide context" [shape=box];
         "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
@@ -314,7 +348,8 @@ digraph process {
 
     "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Classify task category (plan tag → AI auto-classification)";
     "Classify task category (plan tag → AI auto-classification)" -> "Dispatch coding-dispatch.md (the only entry point)";
-    "Dispatch coding-dispatch.md (the only entry point)" -> "Implementer subagent asks questions?";
+    "Dispatch coding-dispatch.md (the only entry point)" -> "Implementation result (provider OR internal fallback)";
+    "Implementation result (provider OR internal fallback)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
     "Answer questions, provide context" -> "Dispatch coding-dispatch.md (the only entry point)";
     "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
@@ -336,11 +371,11 @@ digraph process {
 ````
 
 Key differences from the old diagram:
-- Removed node: "Dispatch coding provider (./coding-dispatch.md)" → renamed to "Dispatch coding-dispatch.md (the only entry point)" (single label, emphasizing exclusivity).
-- Removed node: "Coding dispatch returns result or falls back to implementer" diamond.
-- Removed node: "Dispatch implementer subagent (./implementer-prompt.md)" (no longer a separate step).
-- Single edge from "Dispatch coding-dispatch.md (the only entry point)" → "Implementer subagent asks questions?" (provider/fallback decision is internal to coding-dispatch).
-- "Answer questions" loop now points back to "Dispatch coding-dispatch.md (the only entry point)" so re-dispatch also goes through routing.
+- Renamed node: "Dispatch coding provider (./coding-dispatch.md)" → "Dispatch coding-dispatch.md (the only entry point)" (single label, emphasizing exclusivity).
+- Renamed diamond: "Coding dispatch returns result or falls back to implementer" → "Implementation result (provider OR internal fallback)" (single-out diamond — the dispatcher's internal decision is acknowledged but its details are hidden; only one outgoing arrow).
+- Removed node: "Dispatch implementer subagent (./implementer-prompt.md)" (no longer a separate step — implementer dispatch is internal to coding-dispatch).
+- Single edge "Implementation result ..." → "Implementer subagent asks questions?" (no longer a binary fork to "fallback to host AI").
+- "Answer questions" loop points back to "Dispatch coding-dispatch.md (the only entry point)" so re-dispatch also goes through routing.
 
 - [ ] **Step 3: Verify the diagram is updated**
 
@@ -348,19 +383,25 @@ Run:
 ```bash
 grep -c "implementer-prompt.md" skills/subagent-driven-development/SKILL.md
 ```
-Expected: this will still be non-zero because the "Templates and dispatchers" section is updated in Task 5. After Task 4 alone, expect: `1` (just the Prompt Templates list line that we'll fix in Task 5).
+Expected: `1` (the diagram references are gone; the remaining occurrence is the Prompt Templates list line, which Task 5 will remove).
 
 Run:
 ```bash
 grep -c 'Dispatch coding-dispatch.md (the only entry point)' skills/subagent-driven-development/SKILL.md
 ```
-Expected: `4` (1 node declaration + 3 edges: incoming from Classify, outgoing to Implementer asks?, and incoming from Answer questions loop).
+Expected: `4` (1 node declaration + 3 edges: incoming from Classify, outgoing to Implementation result, and incoming from Answer questions loop).
+
+Run:
+```bash
+grep -c 'Implementation result (provider OR internal fallback)' skills/subagent-driven-development/SKILL.md
+```
+Expected: `3` (1 node declaration + 1 incoming edge from Dispatch coding-dispatch + 1 outgoing edge to Implementer asks?).
 
 Run:
 ```bash
 grep -c 'Coding dispatch returns result or falls back to implementer' skills/subagent-driven-development/SKILL.md
 ```
-Expected: `0` (diamond fully removed).
+Expected: `0` (old diamond label fully removed).
 
 - [ ] **Step 4: Commit**
 
@@ -675,13 +716,29 @@ git commit -m "chore: bump version to 5.0.11"
 
 **Files:** none — verification only.
 
-- [ ] **Step 1: Verify no live references to the old filename remain in `skills/`**
+- [ ] **Step 1: Verify only the intended live references to the old filename remain in `skills/`**
 
 Run:
 ```bash
 grep -rn "implementer-prompt.md" skills/ 2>/dev/null
 ```
-Expected: zero matches under `skills/` (the old name appears only inside the shim FILE NAME itself, but `grep -rn "implementer-prompt.md" skills/` greps content, not filenames; the shim's content references `coding-fallback-prompt.md`, not its own name).
+Expected: **exactly 1 match**, located in `skills/subagent-driven-development/SKILL.md` inside the new "## Task Implementation: Always Through coding-dispatch.md" section, in the sentence `**Do not** dispatch \`./coding-fallback-prompt.md\` (or its predecessor \`./implementer-prompt.md\`)`.
+
+This single mention is intentional per spec Section 8.3 — it tells the host AI that the predecessor name is also forbidden as a direct dispatch target. Any additional matches indicate an incomplete edit (likely Task 4 or Task 5 left a residue).
+
+Verify the count and location:
+
+```bash
+grep -rc "implementer-prompt.md" skills/ 2>/dev/null
+```
+Expected:
+```
+skills/subagent-driven-development/SKILL.md:1
+skills/subagent-driven-development/coding-fallback-prompt.md:0
+skills/subagent-driven-development/implementer-prompt.md:0
+skills/subagent-driven-development/coding-dispatch.md:0
+```
+(other skill files: 0)
 
 - [ ] **Step 2: Verify the shim file still exists at the old path**
 
@@ -718,6 +775,12 @@ Run:
 grep -c "Dispatch coding-dispatch.md (the only entry point)" skills/subagent-driven-development/SKILL.md
 ```
 Expected: `4` (one node declaration + three edges in the diagram).
+
+Run:
+```bash
+grep -c "Implementation result (provider OR internal fallback)" skills/subagent-driven-development/SKILL.md
+```
+Expected: `3` (one node declaration + two edges).
 
 - [ ] **Step 5: Verify coding-dispatch.md updates**
 
@@ -817,20 +880,23 @@ Expected:
 
 Record outcome: PASS / FAIL + 1-line observation.
 
-- [ ] **Scenario S3: No config (Setup UX)**
+- [ ] **Scenario S3: No config (Setup UX → complete setup → provider routing)**
 
 Setup:
-- Both `${XDG_CONFIG_HOME:-~/.config}/superpowers/review-config.json` AND `<repo>/.superpowers/review-config.json` absent.
+- Both `${XDG_CONFIG_HOME:-~/.config}/superpowers/review-config.json` AND `<repo>/.superpowers/review-config.json` absent. (Move them aside if present: `mv <path> <path>.bak`.)
 
 Run a fresh SDD session.
 
-Expected:
-- First task triggers `coding-dispatch.md` Step 1 → config-loading.md Step 6 (Setup UX).
-- User sees the prompt: "Multi-AI coding dispatch is not configured. Pick a provider to set up."
-
-Decline the setup. Expected: silent fallback path → Step 7 with `coding-fallback-prompt.md`.
+Expected sequence:
+1. First task triggers `coding-dispatch.md` Step 1 → config-loading.md Step 6 (Setup UX).
+2. User sees the prompt: "Multi-AI coding dispatch is not configured. Pick a provider to set up."
+3. **Complete the setup:** pick `codex` as provider, accept the default `default_provider: codex`, decline category-specific rules, and choose **C (Don't save / session-only)** so the test environment is not polluted.
+4. The dispatcher returns `merged_config.coding` from the in-memory delta with `enabled: true, default_provider: codex`.
+5. The same task is then dispatched **via codex CLI** (provider routing observed — not host fallback).
 
 Record outcome: PASS / FAIL + 1-line observation.
+
+(The `decline-setup-and-fallback` path is functionally equivalent to S2's `coding.enabled: false` setup at the dispatcher level — both end at Step 7 silent fallback. S2 already covers that path; no need to duplicate it here.)
 
 - [ ] **Scenario S4: Category tag in plan**
 
