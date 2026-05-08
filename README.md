@@ -59,6 +59,18 @@ Register the marketplace, then install the plugin:
 /plugin install superpowers-multi@superpowers-multi
 ```
 
+To update:
+
+```bash
+/plugin marketplace update superpowers-multi
+```
+
+```bash
+/plugin install superpowers-multi@superpowers-multi
+```
+
+`/plugin install` reads from the local marketplace clone, not from GitHub directly, so the marketplace clone must be updated first. `/reload-plugins` only reloads the currently-installed version — it does not fetch new releases.
+
 ### OpenAI Codex CLI
 
 Open the plugin search interface:
