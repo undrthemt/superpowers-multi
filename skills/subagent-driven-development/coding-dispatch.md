@@ -177,8 +177,8 @@ When result validation fails due to **no file changes** (but the CLI produced no
 
 If reached from Step 1 (coding not configured and user declined, or explicitly disabled):
 - This is the existing SDD behavior, not a degraded path.
-- Use host AI `general-purpose` subagent with `./implementer-prompt.md` template.
+- Use host AI `general-purpose` subagent with `./coding-fallback-prompt.md` template.
 
 If reached from Steps 5/6/Q&A (external provider failed):
 1. Notify the user: "External coding via <provider-name> failed: <reason>. Falling back to host implementer."
-2. Use host AI `general-purpose` subagent with `./implementer-prompt.md` template, passing all accumulated Q&A context (if any) in the Context section.
+2. Use host AI `general-purpose` subagent with `./coding-fallback-prompt.md` template, passing all accumulated Q&A context (if any) in the Context section.
