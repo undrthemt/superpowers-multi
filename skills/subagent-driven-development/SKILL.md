@@ -48,9 +48,8 @@ digraph process {
     subgraph cluster_per_task {
         label="Per Task";
         "Classify task category (plan tag → AI auto-classification)" [shape=box];
-        "Dispatch coding provider (./coding-dispatch.md)" [shape=box];
-        "Coding dispatch returns result or falls back to implementer" [shape=diamond];
-        "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
+        "Dispatch coding-dispatch.md (the only entry point)" [shape=box];
+        "Implementation result (provider OR internal fallback)" [shape=diamond];
         "Implementer subagent asks questions?" [shape=diamond];
         "Answer questions, provide context" [shape=box];
         "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
@@ -69,13 +68,11 @@ digraph process {
     "Use superpowers-multi:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
     "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Classify task category (plan tag → AI auto-classification)";
-    "Classify task category (plan tag → AI auto-classification)" -> "Dispatch coding provider (./coding-dispatch.md)";
-    "Dispatch coding provider (./coding-dispatch.md)" -> "Coding dispatch returns result or falls back to implementer";
-    "Coding dispatch returns result or falls back to implementer" -> "Dispatch spec reviewer (external provider → host fallback, ./spec-review-prompt.md)" [label="external provider succeeded"];
-    "Coding dispatch returns result or falls back to implementer" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="fallback to host AI"];
-    "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
+    "Classify task category (plan tag → AI auto-classification)" -> "Dispatch coding-dispatch.md (the only entry point)";
+    "Dispatch coding-dispatch.md (the only entry point)" -> "Implementation result (provider OR internal fallback)";
+    "Implementation result (provider OR internal fallback)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
-    "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Answer questions, provide context" -> "Dispatch coding-dispatch.md (the only entry point)";
     "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
     "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer (external provider → host fallback, ./spec-review-prompt.md)";
     "Dispatch spec reviewer (external provider → host fallback, ./spec-review-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
@@ -92,6 +89,22 @@ digraph process {
     "Dispatch final code reviewer (external provider → host fallback)" -> "Use superpowers-multi:finishing-a-development-branch";
 }
 ```
+
+## Task Implementation: Always Through coding-dispatch.md
+
+For each task, **always** invoke `./coding-dispatch.md` with the
+classified `task_category`. This is the only correct entry point for
+task implementation in SDD.
+
+**Do not** dispatch `./coding-fallback-prompt.md` (or its predecessor
+`./implementer-prompt.md`) directly — bypassing `coding-dispatch.md`
+ignores the user's `coding.rules` configuration and prevents the
+configured external AI provider from being used.
+
+The dispatcher itself decides whether to route to an external provider
+or fall back to the host implementer; that decision belongs to
+`coding-dispatch.md`, not to the SDD controller.
+
 
 ## Model Selection
 
@@ -142,14 +155,19 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 
 **Never** ignore an escalation or force the same model to retry without changes. If the implementer said it's stuck, something needs to change.
 
-## Prompt Templates
+## Templates and dispatchers
 
-- `./coding-dispatch.md` - Coding task routing logic (category → provider → CLI/subagent → validation → fallback)
-- `./coding-prompt.md` - Provider-agnostic coding prompt template (used by coding-dispatch.md)
-- `./implementer-prompt.md` - Dispatch implementer subagent (used as fallback when coding dispatch is disabled or fails)
-- `./spec-review-prompt.md` - Spec compliance review template (provider-agnostic)
-- `./code-quality-reviewer-prompt.md` - Code quality review dispatch reference (delegates to `review-dispatch.md`)
-- `skills/requesting-code-review/review-dispatch.md` - Centralized dispatch logic for all review types
+**Entry points (host AI invokes these directly):**
+
+- `./coding-dispatch.md` — Coding task routing logic. **Always use this for task implementation.** Honors `coding.rules` configuration; falls back to the host implementer when external providers are unavailable.
+- `./spec-review-prompt.md` — Spec compliance review template (provider-agnostic)
+- `./code-quality-reviewer-prompt.md` — Code quality review dispatch reference (delegates to `review-dispatch.md`)
+- `skills/requesting-code-review/review-dispatch.md` — Centralized dispatch logic for all review types
+
+**Internal templates (invoked by `coding-dispatch.md`, not directly):**
+
+- `./coding-prompt.md` — Provider-agnostic coding prompt (used by external CLI providers)
+- `./coding-fallback-prompt.md` — Host AI subagent prompt (used by Step 7 fallback)
 
 ## Example Workflow
 

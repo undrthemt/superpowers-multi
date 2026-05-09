@@ -1,5 +1,16 @@
 # Superpowers Release Notes
 
+## v5.0.11 (2026-05-08)
+
+### Subagent-Driven Development: enforce coding-dispatch routing (fork-specific)
+
+Fixes a bug where SDD's host AI could bypass the multi-AI coding dispatch introduced in #6 / #8 by directly invoking the implementer prompt template, ignoring the user's `coding.rules` configuration.
+
+- **Renamed** `skills/subagent-driven-development/implementer-prompt.md` → `coding-fallback-prompt.md` to clarify that this template is invoked only by `coding-dispatch.md` Step 7 (fallback) — not as a top-level entry point. The original file is replaced with a short "Moved" shim, so historical plan/spec references continue to resolve.
+- **SKILL.md** flow diagram and prose strengthened: `coding-dispatch.md` is now the sole entry point for task implementation. The diagram no longer shows the implementer as a sibling node, the "Prompt Templates" section was split into "Entry points" vs "Internal templates", and a new `## Task Implementation: Always Through coding-dispatch.md` section makes the routing requirement explicit.
+- **`coding-dispatch.md`** Step 7 references updated to the new filename.
+- **Backward compatible** for users: `coding.rules` configurations now actually take effect. No config schema changes; no migration required. Long-lived sessions that already loaded the v5.0.10 SKILL.md may need to be restarted for the change to take effect.
+
 ## v5.0.10 (2026-05-07)
 
 ### User Global Review/Coding Config (fork-specific)
