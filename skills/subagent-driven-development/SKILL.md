@@ -90,6 +90,22 @@ digraph process {
 }
 ```
 
+## Task Implementation: Always Through coding-dispatch.md
+
+For each task, **always** invoke `./coding-dispatch.md` with the
+classified `task_category`. This is the only correct entry point for
+task implementation in SDD.
+
+**Do not** dispatch `./coding-fallback-prompt.md` (or its predecessor
+`./implementer-prompt.md`) directly — bypassing `coding-dispatch.md`
+ignores the user's `coding.rules` configuration and prevents the
+configured external AI provider from being used.
+
+The dispatcher itself decides whether to route to an external provider
+or fall back to the host implementer; that decision belongs to
+`coding-dispatch.md`, not to the SDD controller.
+
+
 ## Model Selection
 
 Use the least powerful model that can handle each role to conserve cost and increase speed.
