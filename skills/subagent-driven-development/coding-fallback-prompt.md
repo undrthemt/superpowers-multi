@@ -1,3 +1,13 @@
+# Coding Fallback Prompt Template
+
+**Internal use only.** This template is invoked by `./coding-dispatch.md`
+Step 7 (Fallback) when the configured external coding provider is
+unavailable, disabled, or fails. It is not a top-level entry point —
+the SDD skill must always go through `./coding-dispatch.md` for each
+task to honor the user's `coding.rules` configuration.
+
+---
+
 # Implementer Subagent Prompt Template
 
 Use this template when dispatching an implementer subagent.
