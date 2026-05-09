@@ -32,6 +32,7 @@ This table consolidates the count assertions scattered across Tasks 4, 5, 6, and
 | Verification (file is `skills/subagent-driven-development/SKILL.md` unless noted) | After Task 4 | After Task 5 | After Task 6 (final) |
 |---|---|---|---|
 | `grep -c "implementer-prompt.md"` (in `SKILL.md`) | `1` | `0` | `1` (intentional predecessor mention in Task 6's new section) |
+| `grep -c "coding-fallback-prompt.md"` (in `SKILL.md`) | `0` | `1` (Internal templates list) | `2` (Internal templates list + Task 6's enforcement section) |
 | `grep -c "Dispatch coding-dispatch.md (the only entry point)"` | `4` | `4` | `4` |
 | `grep -c "Implementation result (provider OR internal fallback)"` | `3` | `3` | `3` |
 | `grep -c "Coding dispatch returns result or falls back to implementer"` | `0` | `0` | `0` |
@@ -40,7 +41,7 @@ This table consolidates the count assertions scattered across Tasks 4, 5, 6, and
 | `grep -c "## Task Implementation: Always Through coding-dispatch.md"` | `0` | `0` | `1` |
 | `grep -c "implementer-prompt.md"` in `coding-dispatch.md` (after Task 3) | `0` | `0` | `0` |
 | `grep -c "coding-fallback-prompt.md"` in `coding-dispatch.md` (after Task 3) | `2` | `2` | `2` |
-| `grep -rc "implementer-prompt.md" skills/` (recursive) | — | — | `skills/subagent-driven-development/SKILL.md:1` (all other files: `0`) |
+| `grep -rc "implementer-prompt.md" skills/ \| grep -v ':0$'` (recursive, non-zero only) | — | — | `skills/subagent-driven-development/SKILL.md:1` (single line; no other matches) |
 
 If any assertion fails, do not proceed to the next task — diagnose and fix the divergence first.
 
@@ -716,29 +717,31 @@ git commit -m "chore: bump version to 5.0.11"
 
 **Files:** none — verification only.
 
-- [ ] **Step 1: Verify only the intended live references to the old filename remain in `skills/`**
+- [ ] **Step 1: Verify only the intended live reference to the old filename remains in `skills/`**
 
-Run:
-```bash
-grep -rn "implementer-prompt.md" skills/ 2>/dev/null
-```
-Expected: **exactly 1 match**, located in `skills/subagent-driven-development/SKILL.md` inside the new "## Task Implementation: Always Through coding-dispatch.md" section, in the sentence `**Do not** dispatch \`./coding-fallback-prompt.md\` (or its predecessor \`./implementer-prompt.md\`)`.
-
-This single mention is intentional per spec Section 8.3 — it tells the host AI that the predecessor name is also forbidden as a direct dispatch target. Any additional matches indicate an incomplete edit (likely Task 4 or Task 5 left a residue).
-
-Verify the count and location:
+Run (filter to non-zero counts only — `grep -rc` would otherwise list every file under `skills/`, most with `:0`):
 
 ```bash
-grep -rc "implementer-prompt.md" skills/ 2>/dev/null
+grep -rc "implementer-prompt.md" skills/ 2>/dev/null | grep -v ':0$'
 ```
-Expected:
+Expected: **exactly one line**:
 ```
 skills/subagent-driven-development/SKILL.md:1
-skills/subagent-driven-development/coding-fallback-prompt.md:0
-skills/subagent-driven-development/implementer-prompt.md:0
-skills/subagent-driven-development/coding-dispatch.md:0
 ```
-(other skill files: 0)
+
+This single mention is intentional per spec Section 8.3 — it tells the host AI that the predecessor name is also forbidden as a direct dispatch target.
+
+To confirm the location is the new "Task Implementation" section (not a residue from Task 4 or Task 5):
+
+```bash
+grep -n "implementer-prompt.md" skills/subagent-driven-development/SKILL.md
+```
+Expected: 1 line, inside the new section, matching:
+```
+NN:`./implementer-prompt.md`) directly — bypassing `coding-dispatch.md`
+```
+
+Any additional matches (in the diagram, in Templates list, or duplicated in the new section) indicate an incomplete edit and must be fixed before proceeding.
 
 - [ ] **Step 2: Verify the shim file still exists at the old path**
 
