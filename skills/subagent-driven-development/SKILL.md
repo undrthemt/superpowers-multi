@@ -139,14 +139,19 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 
 **Never** ignore an escalation or force the same model to retry without changes. If the implementer said it's stuck, something needs to change.
 
-## Prompt Templates
+## Templates and dispatchers
 
-- `./coding-dispatch.md` - Coding task routing logic (category → provider → CLI/subagent → validation → fallback)
-- `./coding-prompt.md` - Provider-agnostic coding prompt template (used by coding-dispatch.md)
-- `./implementer-prompt.md` - Dispatch implementer subagent (used as fallback when coding dispatch is disabled or fails)
-- `./spec-review-prompt.md` - Spec compliance review template (provider-agnostic)
-- `./code-quality-reviewer-prompt.md` - Code quality review dispatch reference (delegates to `review-dispatch.md`)
-- `skills/requesting-code-review/review-dispatch.md` - Centralized dispatch logic for all review types
+**Entry points (host AI invokes these directly):**
+
+- `./coding-dispatch.md` — Coding task routing logic. **Always use this for task implementation.** Honors `coding.rules` configuration; falls back to the host implementer when external providers are unavailable.
+- `./spec-review-prompt.md` — Spec compliance review template (provider-agnostic)
+- `./code-quality-reviewer-prompt.md` — Code quality review dispatch reference (delegates to `review-dispatch.md`)
+- `skills/requesting-code-review/review-dispatch.md` — Centralized dispatch logic for all review types
+
+**Internal templates (invoked by `coding-dispatch.md`, not directly):**
+
+- `./coding-prompt.md` — Provider-agnostic coding prompt (used by external CLI providers)
+- `./coding-fallback-prompt.md` — Host AI subagent prompt (used by Step 7 fallback)
 
 ## Example Workflow
 
