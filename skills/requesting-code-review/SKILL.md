@@ -9,6 +9,19 @@ Dispatch code review to a configurable external AI provider (with host AI fallba
 
 **Core principle:** Review early, review often.
 
+<HARD-GATE>
+Do NOT use the Agent tool directly to dispatch a code review while
+executing this skill.
+
+You MUST `Read` `./review-dispatch.md` and follow its dispatch logic.
+Direct `Agent` dispatch (e.g. `Agent(subagent_type: 'code-reviewer')`)
+bypasses the user's `review_provider` configuration and silently
+ignores their chosen review provider.
+
+If you have not read `./review-dispatch.md` yet in this session, do so
+before requesting any review. Every session, no exceptions.
+</HARD-GATE>
+
 ## When to Request Review
 
 **Mandatory:**
@@ -23,15 +36,29 @@ Dispatch code review to a configurable external AI provider (with host AI fallba
 
 ## How to Request
 
+**0. Configuration detection (MANDATORY before any review dispatch):**
+
+```bash
+ls -la .superpowers/review-config.json \
+       "${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json" \
+       2>/dev/null
+```
+
+- If either file exists → read it, note `review_provider`, then go
+  through `./review-dispatch.md`. Direct `Agent` dispatch is
+  forbidden for this session.
+- If neither exists → review still flows through `./review-dispatch.md`,
+  which falls through to the host AI reviewer.
+
 **1. Get git SHAs:**
 ```bash
 BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
 HEAD_SHA=$(git rev-parse HEAD)
 ```
 
-**2. Dispatch review:**
+**2. Read `./review-dispatch.md` and follow its dispatch logic:**
 
-Read `review-dispatch.md` in this skill directory and follow its dispatch instructions with:
+Pass these template_placeholders:
 - review_type = code-quality
 - template_placeholders:
   - `{WHAT_WAS_IMPLEMENTED}` - What you just built
@@ -56,7 +83,7 @@ You: Let me request code review before proceeding.
 BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
 HEAD_SHA=$(git rev-parse HEAD)
 
-[Dispatch superpowers-multi:code-reviewer subagent]
+[Read ./review-dispatch.md → it resolves provider from review-config.json → dispatches via that provider's CLI or falls back to a host code-reviewer subagent]
   WHAT_WAS_IMPLEMENTED: Verification and repair functions for conversation index
   PLAN_OR_REQUIREMENTS: Task 2 from docs/superpowers/plans/deployment-plan.md
   BASE_SHA: a7981ec

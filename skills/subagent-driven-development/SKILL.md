@@ -5,13 +5,33 @@ description: Use when executing implementation plans with independent tasks in t
 
 # Subagent-Driven Development
 
-Execute plan by dispatching fresh subagent per task, with two-stage external review after each: spec compliance review first, then code quality review. Reviews dispatch via a configurable external AI provider with host AI fallback (see `skills/requesting-code-review/review-dispatch.md`).
+Execute plan by dispatching fresh subagent per task, with two-stage external review after each: spec compliance review first, then code quality review. Reviews dispatch via a configurable external AI provider with host AI fallback (see `../requesting-code-review/review-dispatch.md`).
 
 **Coding dispatch:** Before dispatching the host AI implementer, the system can route implementation tasks to an external AI coding provider based on task category (frontend, backend, etc.). Configuration is layered: an optional user global config at `${XDG_CONFIG_HOME:-~/.config}/superpowers/review-config.json` provides defaults, and an optional project config at `.superpowers/review-config.json` overrides per-project. Either, both, or neither may exist. When disabled or unconfigured, the existing host AI implementer flow is used. See `./coding-dispatch.md` for the full routing logic and `skills/requesting-code-review/config-loading.md` for how the two configs are loaded and merged.
 
 **Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
 
 **Core principle:** Fresh subagent per task + two-stage external review (spec then quality) = high quality, fast iteration
+
+<HARD-GATE>
+Do NOT use the Agent tool directly for task implementation, spec
+review, or code-quality review while executing this skill.
+
+For implementation: you MUST `Read` `./coding-dispatch.md` and follow
+its logic. Direct `Agent` dispatch bypasses the user's `coding.rules`
+configuration and silently ignores their chosen provider.
+
+For review (spec or code quality): you MUST `Read`
+`./spec-review-prompt.md` and `./code-quality-reviewer-prompt.md`,
+which delegate to `../requesting-code-review/review-dispatch.md`.
+Direct review-agent dispatch bypasses the user's `review_provider`
+configuration.
+
+These files exist in the same directory as this SKILL.md (or one
+directory over for review-dispatch.md). If you have not read them yet
+in this session, do so before any task work — every session, no
+exceptions.
+</HARD-GATE>
 
 ## When to Use
 
@@ -41,6 +61,31 @@ digraph when_to_use {
 
 ## The Process
 
+### Step 0 — Configuration detection (MANDATORY before any task work)
+
+Run a single check at the very start of the session, before the flow diagram below:
+
+```bash
+ls -la .superpowers/review-config.json \
+       "${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json" \
+       2>/dev/null
+```
+
+**If either file exists:**
+- Read the file(s).
+- Note `review_provider` and `coding.rules` values.
+- You MUST go through `./coding-dispatch.md` (for implementation) and
+  `../requesting-code-review/review-dispatch.md` (for review) for the
+  rest of this session. Direct `Agent` dispatch is forbidden.
+
+**If neither file exists:**
+- There is no multi-AI configuration to honor.
+- Dispatch still goes through `./coding-dispatch.md` and the review
+  prompts — they handle the no-config case by falling through to the
+  host implementer / reviewer. The HARD-GATE remains in force.
+
+After Step 0 is complete, proceed with the flow diagram below.
+
 ```dot
 digraph process {
     rankdir=TB;
@@ -48,7 +93,7 @@ digraph process {
     subgraph cluster_per_task {
         label="Per Task";
         "Classify task category (plan tag → AI auto-classification)" [shape=box];
-        "Dispatch coding-dispatch.md (the only entry point)" [shape=box];
+        "Read & follow coding-dispatch.md (the only entry point)" [shape=box];
         "Implementation result (provider OR internal fallback)" [shape=diamond];
         "Implementer subagent asks questions?" [shape=diamond];
         "Answer questions, provide context" [shape=box];
@@ -68,11 +113,11 @@ digraph process {
     "Use superpowers-multi:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
     "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Classify task category (plan tag → AI auto-classification)";
-    "Classify task category (plan tag → AI auto-classification)" -> "Dispatch coding-dispatch.md (the only entry point)";
-    "Dispatch coding-dispatch.md (the only entry point)" -> "Implementation result (provider OR internal fallback)";
+    "Classify task category (plan tag → AI auto-classification)" -> "Read & follow coding-dispatch.md (the only entry point)";
+    "Read & follow coding-dispatch.md (the only entry point)" -> "Implementation result (provider OR internal fallback)";
     "Implementation result (provider OR internal fallback)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
-    "Answer questions, provide context" -> "Dispatch coding-dispatch.md (the only entry point)";
+    "Answer questions, provide context" -> "Read & follow coding-dispatch.md (the only entry point)";
     "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
     "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer (external provider → host fallback, ./spec-review-prompt.md)";
     "Dispatch spec reviewer (external provider → host fallback, ./spec-review-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
@@ -90,20 +135,31 @@ digraph process {
 }
 ```
 
-## Task Implementation: Always Through coding-dispatch.md
+## Dispatch decision summary
 
-For each task, **always** invoke `./coding-dispatch.md` with the
-classified `task_category`. This is the only correct entry point for
-task implementation in SDD.
+(Full logic lives in `./coding-dispatch.md` and
+`../requesting-code-review/review-dispatch.md`. You must still `Read`
+those files and follow them; this summary is only to orient you.)
 
-**Do not** dispatch `./coding-fallback-prompt.md` (or its predecessor
-`./implementer-prompt.md`) directly — bypassing `coding-dispatch.md`
-ignores the user's `coding.rules` configuration and prevents the
-configured external AI provider from being used.
+**For each task (implementation):**
 
-The dispatcher itself decides whether to route to an external provider
-or fall back to the host implementer; that decision belongs to
-`coding-dispatch.md`, not to the SDD controller.
+1. Look up `task_category` (plan tag or AI classification).
+2. Check `merged_config.coding.rules` for a `category` match → use
+   that rule's `provider`.
+3. Otherwise use `merged_config.coding.default_provider`.
+4. If no config matches → fall through to the host AI implementer
+   (`./coding-fallback-prompt.md`) via the dispatcher.
+
+**For each review (spec, then code quality):**
+
+1. `Read` `./spec-review-prompt.md` / `./code-quality-reviewer-prompt.md`.
+2. Each delegates to `../requesting-code-review/review-dispatch.md`,
+   which resolves the provider from `merged_config.review_provider`.
+3. If no provider matches → host AI fallback reviewer.
+
+**Do not** short-circuit any of this by calling `Agent(...)` directly.
+The dispatcher files own these decisions. Direct `Agent` dispatch
+silently bypasses the user's `review-config.json`.
 
 
 ## Model Selection
@@ -157,14 +213,14 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 
 ## Templates and dispatchers
 
-**Entry points (host AI invokes these directly):**
+**Entry points (host AI `Read`s these and follows their instructions — do NOT call `Agent` directly with these as references):**
 
 - `./coding-dispatch.md` — Coding task routing logic. **Always use this for task implementation.** Honors `coding.rules` configuration; falls back to the host implementer when external providers are unavailable.
 - `./spec-review-prompt.md` — Spec compliance review template (provider-agnostic)
 - `./code-quality-reviewer-prompt.md` — Code quality review dispatch reference (delegates to `review-dispatch.md`)
-- `skills/requesting-code-review/review-dispatch.md` — Centralized dispatch logic for all review types
+- `../requesting-code-review/review-dispatch.md` — Centralized dispatch logic for all review types
 
-**Internal templates (invoked by `coding-dispatch.md`, not directly):**
+**Internal templates (used by `coding-dispatch.md` from its dispatch logic, not invoked directly by the host AI):**
 
 - `./coding-prompt.md` — Provider-agnostic coding prompt (used by external CLI providers)
 - `./coding-fallback-prompt.md` — Host AI subagent prompt (used by Step 7 fallback)
@@ -174,14 +230,29 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 ```
 You: I'm using Subagent-Driven Development to execute this plan.
 
+[Step 0: Check for review-config.json]
+[ls -la .superpowers/review-config.json "${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json" 2>/dev/null]
+[Found ~/.config/superpowers/review-config.json: review_provider=codex, coding.rules: backend→codex]
+
+[Load dispatch logic — once per session:]
+[Read ./coding-dispatch.md]
+[Read ./spec-review-prompt.md]
+[Read ./code-quality-reviewer-prompt.md]
+[Read ../requesting-code-review/review-dispatch.md]
+
 [Read plan file once: docs/superpowers/plans/feature-plan.md]
 [Extract all 5 tasks with full text and context]
-[Create TodoWrite with all tasks]
+[Create TodoWrite with all tasks — per-task template:
+  - Classify task category
+  - Read & follow ./coding-dispatch.md to dispatch implementation
+  - Read & follow ./spec-review-prompt.md to dispatch spec review
+  - Read & follow ./code-quality-reviewer-prompt.md to dispatch code quality review
+  - Mark task complete]
 
 Task 1: Hook installation script
 
 [Get Task 1 text and context (already extracted)]
-[Dispatch implementation subagent with full task text + context]
+[Read & follow ./coding-dispatch.md with task text + context — dispatcher routes to provider or host fallback]
 
 Implementer: "Before I begin - should the hook be installed at user or system level?"
 
@@ -194,10 +265,10 @@ Implementer: "Got it. Implementing now..."
   - Self-review: Found I missed --force flag, added it
   - Committed
 
-[Dispatch spec compliance reviewer]
+[Read & follow ./spec-review-prompt.md — spec compliance review via review-dispatch.md]
 Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
 
-[Get git SHAs, dispatch code quality reviewer]
+[Get git SHAs; Read & follow ./code-quality-reviewer-prompt.md — code quality review via review-dispatch.md]
 Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
 
 [Mark Task 1 complete]
@@ -205,7 +276,7 @@ Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
 Task 2: Recovery modes
 
 [Get Task 2 text and context (already extracted)]
-[Dispatch implementation subagent with full task text + context]
+[Read & follow ./coding-dispatch.md with task text + context — dispatcher routes to provider or host fallback]
 
 Implementer: [No questions, proceeds]
 Implementer:
@@ -214,7 +285,7 @@ Implementer:
   - Self-review: All good
   - Committed
 
-[Dispatch spec compliance reviewer]
+[Read & follow ./spec-review-prompt.md — spec compliance review via review-dispatch.md]
 Spec reviewer: ❌ Issues:
   - Missing: Progress reporting (spec says "report every 100 items")
   - Extra: Added --json flag (not requested)
@@ -225,7 +296,7 @@ Implementer: Removed --json flag, added progress reporting
 [Spec reviewer reviews again]
 Spec reviewer: ✅ Spec compliant now
 
-[Dispatch code quality reviewer]
+[Read & follow ./code-quality-reviewer-prompt.md — code quality review via review-dispatch.md]
 Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
 
 [Implementer fixes]
@@ -239,7 +310,7 @@ Code reviewer: ✅ Approved
 ...
 
 [After all tasks]
-[Dispatch final code-reviewer]
+[Read & follow ../requesting-code-review/review-dispatch.md with review_type=code-quality and PLAN_OR_REQUIREMENTS=<full plan> — final whole-implementation review]
 Final reviewer: All requirements met, ready to merge
 
 Done!
@@ -255,7 +326,7 @@ BASE_SHA=$(git merge-base HEAD $(git rev-parse --abbrev-ref @{upstream} 2>/dev/n
 ```
 If no upstream is configured, fall back to `main`. If `main` does not exist, use the first commit of the branch.
 
-2. **Dispatch review** by reading `skills/requesting-code-review/review-dispatch.md` and following its instructions with:
+2. **Dispatch review** by reading `../requesting-code-review/review-dispatch.md` and following its instructions with:
    - review_type = code-quality
    - BASE_SHA = the dynamically determined value above
    - HEAD_SHA = current HEAD

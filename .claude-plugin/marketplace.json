@@ -9,7 +9,7 @@
     {
       "name": "superpowers-multi",
       "description": "Core skills library for Claude Code with multi-AI review support",
-      "version": "5.0.11",
+      "version": "5.0.12",
       "source": "./",
       "author": {
         "name": "m-yamashita",
