@@ -230,9 +230,24 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 ```
 You: I'm using Subagent-Driven Development to execute this plan.
 
+[Step 0: Check for review-config.json]
+[ls -la .superpowers/review-config.json ~/.config/superpowers/review-config.json 2>/dev/null]
+[Found ~/.config/superpowers/review-config.json: review_provider=codex, coding.rules: backend→codex]
+
+[Load dispatch logic — once per session:]
+[Read ./coding-dispatch.md]
+[Read ./spec-review-prompt.md]
+[Read ./code-quality-reviewer-prompt.md]
+[Read ../requesting-code-review/review-dispatch.md]
+
 [Read plan file once: docs/superpowers/plans/feature-plan.md]
 [Extract all 5 tasks with full text and context]
-[Create TodoWrite with all tasks]
+[Create TodoWrite with all tasks — per-task template:
+  - Classify task category
+  - Dispatch implementation via coding-dispatch.md
+  - Dispatch spec review via spec-review-prompt.md
+  - Dispatch code quality review via code-quality-reviewer-prompt.md
+  - Mark task complete]
 
 Task 1: Hook installation script
 
