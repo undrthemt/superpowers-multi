@@ -135,20 +135,31 @@ digraph process {
 }
 ```
 
-## Task Implementation: Always Through coding-dispatch.md
+## Dispatch decision summary
 
-For each task, **always** invoke `./coding-dispatch.md` with the
-classified `task_category`. This is the only correct entry point for
-task implementation in SDD.
+(Full logic lives in `./coding-dispatch.md` and
+`../requesting-code-review/review-dispatch.md`. You must still `Read`
+those files and follow them; this summary is only to orient you.)
 
-**Do not** dispatch `./coding-fallback-prompt.md` (or its predecessor
-`./implementer-prompt.md`) directly — bypassing `coding-dispatch.md`
-ignores the user's `coding.rules` configuration and prevents the
-configured external AI provider from being used.
+**For each task (implementation):**
 
-The dispatcher itself decides whether to route to an external provider
-or fall back to the host implementer; that decision belongs to
-`coding-dispatch.md`, not to the SDD controller.
+1. Look up `task_category` (plan tag or AI classification).
+2. Check `merged_config.coding.rules` for a `category` match → use
+   that rule's `provider`.
+3. Otherwise use `merged_config.coding.default_provider`.
+4. If no config matches → fall through to the host AI implementer
+   (`./coding-fallback-prompt.md`) via the dispatcher.
+
+**For each review (spec, then code quality):**
+
+1. `Read` `./spec-review-prompt.md` / `./code-quality-reviewer-prompt.md`.
+2. Each delegates to `../requesting-code-review/review-dispatch.md`,
+   which resolves the provider from `merged_config.review_provider`.
+3. If no provider matches → host AI fallback reviewer.
+
+**Do not** short-circuit any of this by calling `Agent(...)` directly.
+The dispatcher files own these decisions. Direct `Agent` dispatch
+silently bypasses the user's `review-config.json`.
 
 
 ## Model Selection
