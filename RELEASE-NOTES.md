@@ -1,5 +1,21 @@
 # Superpowers Release Notes
 
+## v5.0.12 (2026-05-13)
+
+### SDD / requesting-code-review: HARD-GATE against silent dispatch bypass (fork-specific)
+
+Addresses a real-world bypass observed on v5.0.11: the host Claude silently used `Agent(subagent_type: 'general-purpose')` and `Agent(subagent_type: 'superpowers-multi:code-reviewer')` for an entire branch instead of reading and following `coding-dispatch.md` / `review-dispatch.md`, ignoring the user's `~/.config/superpowers/review-config.json` (`review_provider: codex`, `coding.rules: backend→codex`). The user only discovered the bypass by asking afterwards.
+
+- **`<HARD-GATE>` block** added near the top of `skills/subagent-driven-development/SKILL.md` and `skills/requesting-code-review/SKILL.md`, copying the gate pattern proven to work in `brainstorming`.
+- **`Step 0 — Configuration detection`** is now MANDATORY before any dispatch decision. A single `ls` checks for `.superpowers/review-config.json` and the global config; if either exists, direct `Agent` dispatch is forbidden for the session.
+- **`## Dispatch decision summary`** replaces the v5.0.11 `## Task Implementation: Always Through coding-dispatch.md` section. The new section is a 20-line summary of the routing logic that orients the host AI without inviting it to paraphrase the canonical files.
+- **Verb rewording:** every `invoke X.md` in both SKILL.md files becomes `Read X.md and follow its instructions`, removing the collision with the `Agent` tool's "dispatch" verb.
+- **Example workflow** explicitly shows the Step 0 check and the `Read ./coding-dispatch.md` / `Read ./spec-review-prompt.md` / `Read ./code-quality-reviewer-prompt.md` / `Read ../requesting-code-review/review-dispatch.md` sequence as the canonical opening.
+- **Caller-contract block** added at the top of `coding-dispatch.md` and `review-dispatch.md` to catch host AIs that partially read the file and then paraphrase.
+- **No code, schema, or provider changes.** Pure prose changes across four skill files. No migration required. Long-lived sessions that loaded v5.0.11 SKILL.md need to be restarted for the gate to take effect.
+
+Source: `docs/superpowers/specs/2026-05-13-sdd-dispatch-hard-gate-design.md`.
+
 ## v5.0.11 (2026-05-08)
 
 ### Subagent-Driven Development: enforce coding-dispatch routing (fork-specific)
