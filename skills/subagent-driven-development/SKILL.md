@@ -310,7 +310,7 @@ Code reviewer: ✅ Approved
 ...
 
 [After all tasks]
-[Read & follow ./code-quality-reviewer-prompt.md for the final whole-implementation review]
+[Read & follow ../requesting-code-review/review-dispatch.md with review_type=code-quality and PLAN_OR_REQUIREMENTS=<full plan> — final whole-implementation review]
 Final reviewer: All requirements met, ready to merge
 
 Done!
@@ -402,7 +402,7 @@ If no upstream is configured, fall back to `main`. If `main` does not exist, use
 - **superpowers-multi:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
 - **superpowers-multi:writing-plans** - Creates the plan this skill executes
 - **superpowers-multi:requesting-code-review** - Code review templates and dispatch logic
-- **../requesting-code-review/review-dispatch.md** - Configurable external review provider with host AI fallback
+- **review-dispatch.md** - Configurable external review provider with host AI fallback
 - **./coding-dispatch.md** - Configurable external coding provider with host AI fallback
 - **superpowers-multi:finishing-a-development-branch** - Complete development after all tasks
 
