@@ -9,6 +9,19 @@ Dispatch code review to a configurable external AI provider (with host AI fallba
 
 **Core principle:** Review early, review often.
 
+<HARD-GATE>
+Do NOT use the Agent tool directly to dispatch a code review while
+executing this skill.
+
+You MUST `Read` `./review-dispatch.md` and follow its dispatch logic.
+Direct `Agent` dispatch (e.g. `Agent(subagent_type: 'code-reviewer')`)
+bypasses the user's `review_provider` configuration and silently
+ignores their chosen review provider.
+
+If you have not read `./review-dispatch.md` yet in this session, do so
+before requesting any review. Every session, no exceptions.
+</HARD-GATE>
+
 ## When to Request Review
 
 **Mandatory:**
@@ -22,6 +35,20 @@ Dispatch code review to a configurable external AI provider (with host AI fallba
 - After fixing complex bug
 
 ## How to Request
+
+**0. Configuration detection (MANDATORY before any review dispatch):**
+
+```bash
+ls -la .superpowers/review-config.json \
+       "${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json" \
+       2>/dev/null
+```
+
+- If either file exists → read it, note `review_provider`, then go
+  through `./review-dispatch.md`. Direct `Agent` dispatch is
+  forbidden for this session.
+- If neither exists → review still flows through `./review-dispatch.md`,
+  which falls through to the host AI reviewer.
 
 **1. Get git SHAs:**
 ```bash
