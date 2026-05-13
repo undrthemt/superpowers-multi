@@ -3,6 +3,13 @@
 Centralized dispatch logic for routing implementation tasks to external AI providers.
 Mirrors the review dispatch pattern (`skills/requesting-code-review/review-dispatch.md`).
 
+> **Caller contract:** If you reached this file as a host AI executing
+> SDD or another dispatch flow, you MUST follow the steps below from
+> Step 1 onward. Do not skim and then call the `Agent` tool with what
+> you remember — the routing logic (session state, disk checks,
+> fallbacks) is load-bearing. Direct `Agent` dispatch silently bypasses
+> the user's `coding.rules` configuration.
+
 ## Parameters
 
 The caller provides:
