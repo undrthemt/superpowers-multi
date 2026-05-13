@@ -93,7 +93,7 @@ digraph process {
     subgraph cluster_per_task {
         label="Per Task";
         "Classify task category (plan tag → AI auto-classification)" [shape=box];
-        "Dispatch coding-dispatch.md (the only entry point)" [shape=box];
+        "Read & follow coding-dispatch.md (the only entry point)" [shape=box];
         "Implementation result (provider OR internal fallback)" [shape=diamond];
         "Implementer subagent asks questions?" [shape=diamond];
         "Answer questions, provide context" [shape=box];
@@ -113,11 +113,11 @@ digraph process {
     "Use superpowers-multi:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
     "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Classify task category (plan tag → AI auto-classification)";
-    "Classify task category (plan tag → AI auto-classification)" -> "Dispatch coding-dispatch.md (the only entry point)";
-    "Dispatch coding-dispatch.md (the only entry point)" -> "Implementation result (provider OR internal fallback)";
+    "Classify task category (plan tag → AI auto-classification)" -> "Read & follow coding-dispatch.md (the only entry point)";
+    "Read & follow coding-dispatch.md (the only entry point)" -> "Implementation result (provider OR internal fallback)";
     "Implementation result (provider OR internal fallback)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
-    "Answer questions, provide context" -> "Dispatch coding-dispatch.md (the only entry point)";
+    "Answer questions, provide context" -> "Read & follow coding-dispatch.md (the only entry point)";
     "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
     "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer (external provider → host fallback, ./spec-review-prompt.md)";
     "Dispatch spec reviewer (external provider → host fallback, ./spec-review-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
@@ -213,14 +213,14 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 
 ## Templates and dispatchers
 
-**Entry points (host AI invokes these directly):**
+**Entry points (host AI `Read`s these and follows their instructions — do NOT call `Agent` directly with these as references):**
 
 - `./coding-dispatch.md` — Coding task routing logic. **Always use this for task implementation.** Honors `coding.rules` configuration; falls back to the host implementer when external providers are unavailable.
 - `./spec-review-prompt.md` — Spec compliance review template (provider-agnostic)
 - `./code-quality-reviewer-prompt.md` — Code quality review dispatch reference (delegates to `review-dispatch.md`)
 - `skills/requesting-code-review/review-dispatch.md` — Centralized dispatch logic for all review types
 
-**Internal templates (invoked by `coding-dispatch.md`, not directly):**
+**Internal templates (used by `coding-dispatch.md` from its dispatch logic, not invoked directly by the host AI):**
 
 - `./coding-prompt.md` — Provider-agnostic coding prompt (used by external CLI providers)
 - `./coding-fallback-prompt.md` — Host AI subagent prompt (used by Step 7 fallback)
