@@ -71,6 +71,8 @@ To update:
 
 `/plugin install` reads from the local marketplace clone, not from GitHub directly, so the marketplace clone must be updated first. `/reload-plugins` only reloads the currently-installed version — it does not fetch new releases.
 
+After `/plugin install` completes, run `/reload-plugins` or restart the session for the updated skill content to take effect in the current conversation. The host AI caches skill prose loaded earlier in the session, so long-lived conversations will keep using the previously-loaded version until reloaded.
+
 ### OpenAI Codex CLI
 
 Open the plugin search interface:
