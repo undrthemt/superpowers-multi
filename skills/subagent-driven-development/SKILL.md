@@ -13,6 +13,26 @@ Execute plan by dispatching fresh subagent per task, with two-stage external rev
 
 **Core principle:** Fresh subagent per task + two-stage external review (spec then quality) = high quality, fast iteration
 
+<HARD-GATE>
+Do NOT use the Agent tool directly for task implementation, spec
+review, or code-quality review while executing this skill.
+
+For implementation: you MUST `Read` `./coding-dispatch.md` and follow
+its logic. Direct `Agent` dispatch bypasses the user's `coding.rules`
+configuration and silently ignores their chosen provider.
+
+For review (spec or code quality): you MUST `Read`
+`./spec-review-prompt.md` and `./code-quality-reviewer-prompt.md`,
+which delegate to `skills/requesting-code-review/review-dispatch.md`.
+Direct review-agent dispatch bypasses the user's `review_provider`
+configuration.
+
+These files exist in the same directory as this SKILL.md (or one
+directory over for review-dispatch.md). If you have not read them yet
+in this session, do so before any task work — every session, no
+exceptions.
+</HARD-GATE>
+
 ## When to Use
 
 ```dot
@@ -40,6 +60,31 @@ digraph when_to_use {
 - Faster iteration (no human-in-loop between tasks)
 
 ## The Process
+
+### Step 0 — Configuration detection (MANDATORY before any task work)
+
+Run a single check at the very start of the session, before the flow diagram below:
+
+```bash
+ls -la .superpowers/review-config.json \
+       "${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json" \
+       2>/dev/null
+```
+
+**If either file exists:**
+- Read the file(s).
+- Note `review_provider` and `coding.rules` values.
+- You MUST go through `./coding-dispatch.md` (for implementation) and
+  `../requesting-code-review/review-dispatch.md` (for review) for the
+  rest of this session. Direct `Agent` dispatch is forbidden.
+
+**If neither file exists:**
+- There is no multi-AI configuration to honor.
+- Dispatch still goes through `./coding-dispatch.md` and the review
+  prompts — they handle the no-config case by falling through to the
+  host implementer / reviewer. The HARD-GATE remains in force.
+
+After Step 0 is complete, proceed with the flow diagram below.
 
 ```dot
 digraph process {
