@@ -5,7 +5,7 @@ description: Use when executing implementation plans with independent tasks in t
 
 # Subagent-Driven Development
 
-Execute plan by dispatching fresh subagent per task, with two-stage external review after each: spec compliance review first, then code quality review. Reviews dispatch via a configurable external AI provider with host AI fallback (see `skills/requesting-code-review/review-dispatch.md`).
+Execute plan by dispatching fresh subagent per task, with two-stage external review after each: spec compliance review first, then code quality review. Reviews dispatch via a configurable external AI provider with host AI fallback (see `../requesting-code-review/review-dispatch.md`).
 
 **Coding dispatch:** Before dispatching the host AI implementer, the system can route implementation tasks to an external AI coding provider based on task category (frontend, backend, etc.). Configuration is layered: an optional user global config at `${XDG_CONFIG_HOME:-~/.config}/superpowers/review-config.json` provides defaults, and an optional project config at `.superpowers/review-config.json` overrides per-project. Either, both, or neither may exist. When disabled or unconfigured, the existing host AI implementer flow is used. See `./coding-dispatch.md` for the full routing logic and `skills/requesting-code-review/config-loading.md` for how the two configs are loaded and merged.
 
@@ -23,7 +23,7 @@ configuration and silently ignores their chosen provider.
 
 For review (spec or code quality): you MUST `Read`
 `./spec-review-prompt.md` and `./code-quality-reviewer-prompt.md`,
-which delegate to `skills/requesting-code-review/review-dispatch.md`.
+which delegate to `../requesting-code-review/review-dispatch.md`.
 Direct review-agent dispatch bypasses the user's `review_provider`
 configuration.
 
@@ -218,7 +218,7 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 - `./coding-dispatch.md` — Coding task routing logic. **Always use this for task implementation.** Honors `coding.rules` configuration; falls back to the host implementer when external providers are unavailable.
 - `./spec-review-prompt.md` — Spec compliance review template (provider-agnostic)
 - `./code-quality-reviewer-prompt.md` — Code quality review dispatch reference (delegates to `review-dispatch.md`)
-- `skills/requesting-code-review/review-dispatch.md` — Centralized dispatch logic for all review types
+- `../requesting-code-review/review-dispatch.md` — Centralized dispatch logic for all review types
 
 **Internal templates (used by `coding-dispatch.md` from its dispatch logic, not invoked directly by the host AI):**
 
@@ -231,7 +231,7 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 You: I'm using Subagent-Driven Development to execute this plan.
 
 [Step 0: Check for review-config.json]
-[ls -la .superpowers/review-config.json ~/.config/superpowers/review-config.json 2>/dev/null]
+[ls -la .superpowers/review-config.json "${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json" 2>/dev/null]
 [Found ~/.config/superpowers/review-config.json: review_provider=codex, coding.rules: backend→codex]
 
 [Load dispatch logic — once per session:]
@@ -244,15 +244,15 @@ You: I'm using Subagent-Driven Development to execute this plan.
 [Extract all 5 tasks with full text and context]
 [Create TodoWrite with all tasks — per-task template:
   - Classify task category
-  - Dispatch implementation via coding-dispatch.md
-  - Dispatch spec review via spec-review-prompt.md
-  - Dispatch code quality review via code-quality-reviewer-prompt.md
+  - Read & follow ./coding-dispatch.md to dispatch implementation
+  - Read & follow ./spec-review-prompt.md to dispatch spec review
+  - Read & follow ./code-quality-reviewer-prompt.md to dispatch code quality review
   - Mark task complete]
 
 Task 1: Hook installation script
 
 [Get Task 1 text and context (already extracted)]
-[Dispatch implementation subagent with full task text + context]
+[Read & follow ./coding-dispatch.md with task text + context — dispatcher routes to provider or host fallback]
 
 Implementer: "Before I begin - should the hook be installed at user or system level?"
 
@@ -265,10 +265,10 @@ Implementer: "Got it. Implementing now..."
   - Self-review: Found I missed --force flag, added it
   - Committed
 
-[Dispatch spec compliance reviewer]
+[Read & follow ./spec-review-prompt.md — spec compliance review via review-dispatch.md]
 Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
 
-[Get git SHAs, dispatch code quality reviewer]
+[Get git SHAs; Read & follow ./code-quality-reviewer-prompt.md — code quality review via review-dispatch.md]
 Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
 
 [Mark Task 1 complete]
@@ -276,7 +276,7 @@ Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
 Task 2: Recovery modes
 
 [Get Task 2 text and context (already extracted)]
-[Dispatch implementation subagent with full task text + context]
+[Read & follow ./coding-dispatch.md with task text + context — dispatcher routes to provider or host fallback]
 
 Implementer: [No questions, proceeds]
 Implementer:
@@ -285,7 +285,7 @@ Implementer:
   - Self-review: All good
   - Committed
 
-[Dispatch spec compliance reviewer]
+[Read & follow ./spec-review-prompt.md — spec compliance review via review-dispatch.md]
 Spec reviewer: ❌ Issues:
   - Missing: Progress reporting (spec says "report every 100 items")
   - Extra: Added --json flag (not requested)
@@ -296,7 +296,7 @@ Implementer: Removed --json flag, added progress reporting
 [Spec reviewer reviews again]
 Spec reviewer: ✅ Spec compliant now
 
-[Dispatch code quality reviewer]
+[Read & follow ./code-quality-reviewer-prompt.md — code quality review via review-dispatch.md]
 Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
 
 [Implementer fixes]
@@ -310,7 +310,7 @@ Code reviewer: ✅ Approved
 ...
 
 [After all tasks]
-[Dispatch final code-reviewer]
+[Read & follow ./code-quality-reviewer-prompt.md for the final whole-implementation review]
 Final reviewer: All requirements met, ready to merge
 
 Done!
@@ -326,7 +326,7 @@ BASE_SHA=$(git merge-base HEAD $(git rev-parse --abbrev-ref @{upstream} 2>/dev/n
 ```
 If no upstream is configured, fall back to `main`. If `main` does not exist, use the first commit of the branch.
 
-2. **Dispatch review** by reading `skills/requesting-code-review/review-dispatch.md` and following its instructions with:
+2. **Dispatch review** by reading `../requesting-code-review/review-dispatch.md` and following its instructions with:
    - review_type = code-quality
    - BASE_SHA = the dynamically determined value above
    - HEAD_SHA = current HEAD
@@ -402,7 +402,7 @@ If no upstream is configured, fall back to `main`. If `main` does not exist, use
 - **superpowers-multi:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
 - **superpowers-multi:writing-plans** - Creates the plan this skill executes
 - **superpowers-multi:requesting-code-review** - Code review templates and dispatch logic
-- **review-dispatch.md** - Configurable external review provider with host AI fallback
+- **../requesting-code-review/review-dispatch.md** - Configurable external review provider with host AI fallback
 - **./coding-dispatch.md** - Configurable external coding provider with host AI fallback
 - **superpowers-multi:finishing-a-development-branch** - Complete development after all tasks
 
