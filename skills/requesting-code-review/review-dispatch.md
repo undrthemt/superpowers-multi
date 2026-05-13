@@ -3,6 +3,13 @@
 Centralized dispatch logic for routing code reviews to external AI providers.
 All review skills reference this file instead of containing their own dispatch logic.
 
+> **Caller contract:** If you reached this file as a host AI executing
+> SDD or requesting-code-review, you MUST follow the steps below from
+> Step 1 onward. Do not skim and then call the `Agent` tool with what
+> you remember — the routing logic (provider resolution, plugin
+> override, CLI dispatch, fallback) is load-bearing. Direct `Agent`
+> dispatch silently bypasses the user's `review_provider` configuration.
+
 ## Parameters
 
 The caller provides:
