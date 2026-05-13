@@ -56,9 +56,9 @@ BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
 HEAD_SHA=$(git rev-parse HEAD)
 ```
 
-**2. Dispatch review:**
+**2. Read `./review-dispatch.md` and follow its dispatch logic:**
 
-Read `review-dispatch.md` in this skill directory and follow its dispatch instructions with:
+Pass these template_placeholders:
 - review_type = code-quality
 - template_placeholders:
   - `{WHAT_WAS_IMPLEMENTED}` - What you just built
@@ -83,7 +83,7 @@ You: Let me request code review before proceeding.
 BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
 HEAD_SHA=$(git rev-parse HEAD)
 
-[Dispatch superpowers-multi:code-reviewer subagent]
+[Read ./review-dispatch.md → it resolves provider from review-config.json → dispatches via that provider's CLI or falls back to a host code-reviewer subagent]
   WHAT_WAS_IMPLEMENTED: Verification and repair functions for conversation index
   PLAN_OR_REQUIREMENTS: Task 2 from docs/superpowers/plans/deployment-plan.md
   BASE_SHA: a7981ec
