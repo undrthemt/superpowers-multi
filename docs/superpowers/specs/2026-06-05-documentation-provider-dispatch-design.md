@@ -170,7 +170,7 @@ global_exists  = test -e ${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-co
 - `session_documentation_provider` is set → assign `provider_name = session_documentation_provider`, skip to Step 3. Step 2's undefined check does not apply — Step 3's provider-not-found path handles any invalid cached value.
 - Neither set → fall through to config-loading.
 
-**If at least one file exists** → fall through to config-loading regardless of session state (disk authority: config file governs; mid-session disk edits are respected). Clear `session_documentation_provider` (set to `undefined`) before calling config-loading, so session state does not accumulate stale values. Use only what `config-loading.md` returns.
+**If at least one file exists** → fall through to config-loading regardless of session state (disk authority: config file governs; mid-session disk edits are respected). Clear `session_documentation_provider` (set to `undefined`) before calling config-loading, so session state does not accumulate stale values. Do not check or clear `session_documentation_decline` on this path — config-loading governs the interaction completely, and a prior decline is irrelevant once a config file exists on disk. Use only what `config-loading.md` returns.
 
 Call `config-loading.md` with `caller_intent="documentation"`.
 
@@ -221,10 +221,11 @@ Resolve the invocation config using the same priority chain as plugin override:
 **Rationale:** `invoke_coding` is not used because documentation is a distinct dispatch type. `invoke` is the appropriate default for non-coding generative tasks. When a provider's `invoke` timeout (currently 300s for Codex) proves insufficient for long documentation tasks, providers can add an `invoke_documentation` entry with a higher timeout — this is deferred to a future provider update per Non-Goals.
 
 Steps:
-1. Write `prompt_content` to a temp file.
-2. Run the CLI command with the resolved args.
-3. Capture output.
-4. Clean up the temporary file.
+1. Run the provider's `detect` command. If it fails (non-zero exit) → warn `⚠ Provider '<provider_name>' CLI not installed. Falling back to root AI.` → Step 7.
+2. Write `prompt_content` to a temp file.
+3. Run the CLI command with the resolved args.
+4. Capture output.
+5. Clean up the temporary file.
 
 On exit 0 → proceed to Step 6 (Response Validation).
 
@@ -372,3 +373,5 @@ The test file must follow the patterns established in `tests/claude-code/test-he
 5. **Provider CLI fails** — `documentation_provider` configured but CLI exits non-zero → warn + root AI fallback.
 6. **Provider returns empty output** — CLI exits 0 but output is empty → Step 6 warns + root AI fallback.
 7. **Session-only cache** — user picks provider, chooses "session only" → `session_documentation_provider` set, second invocation (no config file on disk) skips Setup UX and uses cached provider.
+8. **Plugin override via `plugin_override`** — provider definition has `plugin_override` (no `plugin_override_documentation`), host matches → subagent dispatch used, CLI not invoked.
+9. **Plugin override failure falls through to CLI** — plugin override dispatch fails → Step 5 CLI dispatch runs, not Step 7 directly.
