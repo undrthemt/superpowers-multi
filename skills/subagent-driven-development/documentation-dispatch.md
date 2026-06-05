@@ -90,7 +90,7 @@ Resolve the invocation config using the following priority chain:
 
 1. For each invocation field (`command`, `args`, `input_method`, `timeout_seconds`): use `invoke_documentation.<field>` if present; otherwise fall back to `invoke.<field>`. This allows providers to override only `timeout_seconds` in `invoke_documentation` while inheriting `command`, `args`, and `input_method` from `invoke`.
 
-**Rationale:** `invoke_coding` is not used because documentation is a distinct dispatch type. `invoke` is the appropriate default for non-coding generative tasks. Providers that need a higher timeout for long docs can add `invoke_documentation`.
+**Rationale:** `invoke_coding` is not used because documentation is a distinct dispatch type. `invoke` is the appropriate default for non-coding generative tasks. Providers that need a higher timeout for long docs can add `invoke_documentation.timeout_seconds` without duplicating the other fields.
 
 Steps:
 1. Run the provider's `detect` command. If it fails (non-zero exit) → warn `⚠ Provider '<provider_name>' CLI not installed. Falling back to root AI.` → Step 7.

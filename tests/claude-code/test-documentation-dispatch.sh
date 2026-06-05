@@ -9,13 +9,13 @@ source "$SCRIPT_DIR/test-helpers.sh"
 echo "=== Test: documentation-dispatch ==="
 echo ""
 
-# Test 1: Dispatcher file exists and has correct structure
-echo "Test 1: Dispatcher file structure..."
+# Test 1: Dispatcher routes successfully and returns output when provider is configured
+echo "Test 1: Provider configured + CLI returns output → returns to caller, root AI not invoked..."
 
-output=$(run_claude "Read skills/subagent-driven-development/documentation-dispatch.md and list its step numbers (Step 1 through Step 7)." 30 "Read")
+output=$(run_claude "According to documentation-dispatch.md: if documentation_provider is configured, the provider CLI is installed, and the CLI returns non-empty output, does the dispatcher return the content to the caller? Is the root AI invoked in this case?" 30 "Read")
 
-if assert_contains "$output" "Step 1\|Step1" "Has Step 1"; then : ; else exit 1; fi
-if assert_contains "$output" "Step 7\|Step7" "Has Step 7"; then : ; else exit 1; fi
+if assert_contains "$output" "return\|returned\|caller\|step 6\|Step 6\|non-empty" "Returns content to caller"; then : ; else exit 1; fi
+if assert_not_contains "$output" "root AI.*invoked\|invokes.*root\|falls back\|fallback" "Root AI not invoked on success"; then : ; else exit 1; fi
 echo ""
 
 # Test 2: Fallback behavior when documentation_provider is not configured

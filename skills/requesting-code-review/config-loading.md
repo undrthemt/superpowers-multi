@@ -163,7 +163,7 @@ A reusable subroutine. Used by Step 6 above and by `coding-dispatch.md`'s coding
    a. Resolve target path (`global_path` for A, `project_path` for B).
    b. `mkdir -p "$(dirname "<path>")"`.
    c. **Compute the new file content.** Read the existing file (or treat as `{}` if missing). Apply `delta` using the same merge rules as Step 4 (read-side merge), but with `delta` taking the role of `project_cfg` (override) and the existing file content taking the role of `global_cfg` (defaults). In particular:
-      - Top-level scalar keys (`review_provider`): replace if present in `delta`; otherwise preserve existing.
+      - Top-level scalar keys (`review_provider`, `documentation_provider`): replace if present in `delta`; otherwise preserve existing.
       - If `delta` has no `coding` key, leave the existing `coding` block untouched.
       - `coding.enabled` and `coding.default_provider`: replace if present in `delta`; otherwise preserve existing.
       - `coding.rules`: apply Level 3's category-keyed merge. The empty-array exception (`delta.coding.rules == []`) explicitly clears global rules in the on-disk file.
