@@ -160,7 +160,7 @@ Maintain two session-level variables, parallel to `session_coding_decline` and `
 
 If `session_documentation_decline == true` → skip to Step 7 silently.
 
-If `session_documentation_provider` is set → use it as `provider_name`, skip to Step 3 directly.
+If `session_documentation_provider` is set → assign `provider_name = session_documentation_provider` and skip to Step 3 directly. Step 2's undefined check does not apply — Step 3's provider-not-found path handles any invalid cached value.
 
 Call `config-loading.md` with `caller_intent="documentation"`.
 
@@ -275,10 +275,16 @@ which delegate to `../requesting-code-review/review-dispatch.md`. ...
 Add a third paragraph to the HARD-GATE:
 
 ```
-For documentation tasks (plan files, design documents, Confluence pages):
-you MUST `Read` `./documentation-dispatch.md` and follow its logic.
-Direct Agent dispatch bypasses the user's `documentation_provider`
-configuration and silently ignores their chosen provider.
+For documentation tasks (plan files, design documents, Confluence pages,
+READMEs, architecture docs): you MUST `Read` `./documentation-dispatch.md`
+and follow its logic. Direct Agent dispatch bypasses the user's
+`documentation_provider` configuration and silently ignores their chosen
+provider.
+
+A task is a documentation task when it explicitly produces a document
+artifact (plan file, design document, Confluence page, README, architecture
+doc). Tasks that write source code files (.js, .py, .ts, config, test files)
+are not documentation tasks even if their description mentions writing.
 ```
 
 Also add `./documentation-dispatch.md` to the "See" reference list at the bottom of the skill file.
@@ -324,6 +330,7 @@ The `doc_type` value passed to `documentation-dispatch.md` is inferred from the 
 | `skills/writing-plans/SKILL.md` | Delegate plan generation to documentation-dispatch |
 | `skills/subagent-driven-development/SKILL.md` | Add HARD-GATE entry + doc task routing to documentation-dispatch |
 | `tests/claude-code/test-documentation-dispatch.sh` | New test file |
+| `tests/claude-code/run-skill-tests.sh` | Add `test-documentation-dispatch.sh` to the `tests` array |
 
 No changes to provider JSON files, `review-dispatch.md`, `coding-dispatch.md`, or config file schemas beyond the single new key.
 
