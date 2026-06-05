@@ -34,7 +34,7 @@ exceptions.
 
 For documentation tasks (plan files, design documents, Confluence pages,
 READMEs, architecture docs): you MUST `Read` `./documentation-dispatch.md`
-and follow its logic. Direct Agent dispatch bypasses the user's
+and follow its logic. Direct `Agent` dispatch bypasses the user's
 `documentation_provider` configuration and silently ignores their chosen
 provider.
 
@@ -92,9 +92,9 @@ ls -la .superpowers/review-config.json \
 
 **If neither file exists:**
 - There is no multi-AI configuration to honor.
-- Dispatch still goes through `./coding-dispatch.md` and the review
+- Dispatch still goes through `./coding-dispatch.md` (for implementation), `./documentation-dispatch.md` (for documentation tasks), and the review
   prompts — they handle the no-config case by falling through to the
-  host implementer / reviewer. The HARD-GATE remains in force.
+  host implementer / reviewer / root AI. The HARD-GATE remains in force.
 
 After Step 0 is complete, proceed with the flow diagram below.
 
@@ -161,6 +161,12 @@ those files and follow them; this summary is only to orient you.)
 3. Otherwise use `merged_config.coding.default_provider`.
 4. If no config matches → fall through to the host AI implementer
    (`./coding-fallback-prompt.md`) via the dispatcher.
+
+**For each documentation task (plan files, design docs, READMEs, Confluence pages):**
+
+1. The task explicitly produces a document artifact (not source code) — this is a documentation task.
+2. Read `./documentation-dispatch.md` and follow its logic to route to the configured `documentation_provider`.
+3. If no provider configured → root AI fallback silently.
 
 **For each review (spec, then code quality):**
 
