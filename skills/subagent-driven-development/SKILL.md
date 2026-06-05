@@ -31,6 +31,17 @@ These files exist in the same directory as this SKILL.md (or one
 directory over for review-dispatch.md). If you have not read them yet
 in this session, do so before any task work — every session, no
 exceptions.
+
+For documentation tasks (plan files, design documents, Confluence pages,
+READMEs, architecture docs): you MUST `Read` `./documentation-dispatch.md`
+and follow its logic. Direct Agent dispatch bypasses the user's
+`documentation_provider` configuration and silently ignores their chosen
+provider.
+
+A task is a documentation task when it explicitly produces a document
+artifact (plan file, design document, Confluence page, README, architecture
+doc). Tasks that write source code files (.js, .py, .ts, config, test files)
+are not documentation tasks even if their description mentions writing.
 </HARD-GATE>
 
 ## When to Use
@@ -74,6 +85,7 @@ ls -la .superpowers/review-config.json \
 **If either file exists:**
 - Read the file(s).
 - Note `review_provider` and `coding.rules` values.
+- Note `documentation_provider` value (if present) — documentation tasks will route through `./documentation-dispatch.md`.
 - You MUST go through `./coding-dispatch.md` (for implementation) and
   `../requesting-code-review/review-dispatch.md` (for review) for the
   rest of this session. Direct `Agent` dispatch is forbidden.
@@ -93,7 +105,7 @@ digraph process {
     subgraph cluster_per_task {
         label="Per Task";
         "Classify task category (plan tag → AI auto-classification)" [shape=box];
-        "Read & follow coding-dispatch.md (the only entry point)" [shape=box];
+        "Classify task: doc artifact? → documentation-dispatch.md, else → coding-dispatch.md" [shape=box];
         "Implementation result (provider OR internal fallback)" [shape=diamond];
         "Implementer subagent asks questions?" [shape=diamond];
         "Answer questions, provide context" [shape=box];
@@ -113,11 +125,11 @@ digraph process {
     "Use superpowers-multi:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
     "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Classify task category (plan tag → AI auto-classification)";
-    "Classify task category (plan tag → AI auto-classification)" -> "Read & follow coding-dispatch.md (the only entry point)";
-    "Read & follow coding-dispatch.md (the only entry point)" -> "Implementation result (provider OR internal fallback)";
+    "Classify task category (plan tag → AI auto-classification)" -> "Classify task: doc artifact? → documentation-dispatch.md, else → coding-dispatch.md";
+    "Classify task: doc artifact? → documentation-dispatch.md, else → coding-dispatch.md" -> "Implementation result (provider OR internal fallback)";
     "Implementation result (provider OR internal fallback)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
-    "Answer questions, provide context" -> "Read & follow coding-dispatch.md (the only entry point)";
+    "Answer questions, provide context" -> "Classify task: doc artifact? → documentation-dispatch.md, else → coding-dispatch.md";
     "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
     "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer (external provider → host fallback, ./spec-review-prompt.md)";
     "Dispatch spec reviewer (external provider → host fallback, ./spec-review-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
@@ -216,6 +228,7 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 **Entry points (host AI `Read`s these and follows their instructions — do NOT call `Agent` directly with these as references):**
 
 - `./coding-dispatch.md` — Coding task routing logic. **Always use this for task implementation.** Honors `coding.rules` configuration; falls back to the host implementer when external providers are unavailable.
+- `./documentation-dispatch.md` — Documentation task routing logic. **Always use this for documentation task authoring (plan files, design docs, Confluence pages, READMEs).** Honors `documentation_provider` configuration; falls back to root AI when unconfigured.
 - `./spec-review-prompt.md` — Spec compliance review template (provider-agnostic)
 - `./code-quality-reviewer-prompt.md` — Code quality review dispatch reference (delegates to `review-dispatch.md`)
 - `../requesting-code-review/review-dispatch.md` — Centralized dispatch logic for all review types
