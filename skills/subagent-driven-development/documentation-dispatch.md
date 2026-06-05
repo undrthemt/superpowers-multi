@@ -49,13 +49,13 @@ Call `skills/requesting-code-review/config-loading.md` with `caller_intent="docu
 
 - `source == "user-declined"` → set `session_documentation_decline = true`, clear `session_documentation_provider`, skip to Step 7 silently.
 - `source == "session-only"`:
-  - If `merged_config.documentation_provider` is a non-empty string → set `session_documentation_provider = merged_config.documentation_provider` (unconditional; the pre-load cleared it). Proceed to Step 2.
+  - If `merged_config.documentation_provider` is a non-empty string → set `session_documentation_provider = merged_config.documentation_provider`. Proceed to Step 2.
   - If `merged_config.documentation_provider` is absent or empty → set `session_documentation_decline = true`, clear `session_documentation_provider`, skip to Step 7. Prevents a re-prompt loop.
 - `source == "merged"` → proceed to Step 2.
 
 ## Step 2: Resolve Provider
 
-**This step is reached only when `config-loading.md` was called in Step 1 and returned a `merged_config`.** When `provider_name` was already assigned by the Step 1 pre-load short-circuit, execution continues from Step 3 — this step is skipped.
+**This step is skipped only when `provider_name` was assigned by the Step 1 pre-load (disk absent, `session_documentation_provider` was set, execution jumped to Step 3).** All other paths from Step 1 — including `source == "session-only"` and `source == "merged"` — arrive here with `merged_config` in scope.
 
 ```
 provider_name = merged_config.documentation_provider
@@ -82,14 +82,13 @@ Resolve the override field using the following priority chain:
 If an override is resolved AND the current host matches `override.host` AND the plugin is available:
 - Dispatch via `override.subagent` with `prompt_content` as the prompt.
 - On success → return output to caller.
-- On failure → proceed to Step 5.
+- On failure → proceed to Step 5. (Step 4 dispatches via subagent and writes no temp file; no cleanup is needed before Step 5.)
 
 ## Step 5: CLI Dispatch
 
 Resolve the invocation config using the following priority chain:
 
-1. If `invoke_documentation` is present in the provider definition → use it.
-2. Else use `invoke`.
+1. For each invocation field (`command`, `args`, `input_method`, `timeout_seconds`): use `invoke_documentation.<field>` if present; otherwise fall back to `invoke.<field>`. This allows providers to override only `timeout_seconds` in `invoke_documentation` while inheriting `command`, `args`, and `input_method` from `invoke`.
 
 **Rationale:** `invoke_coding` is not used because documentation is a distinct dispatch type. `invoke` is the appropriate default for non-coding generative tasks. Providers that need a higher timeout for long docs can add `invoke_documentation`.
 
@@ -100,11 +99,12 @@ Steps:
    - If `input_method` is `"file"`: replace `{{prompt_file}}` in resolved `args` with the temp file path, then run `timeout <timeout_seconds> <command> <args...>`
    - If `input_method` is `"stdin"`: run `timeout <timeout_seconds> <command> <args...> < <temp_file>`
 4. Capture stdout as the documentation response.
-5. Clean up the temporary file.
 
 On exit 0 → proceed to Step 6.
 
-On non-zero exit or timeout → warn `⚠ Provider '<provider_name>' failed. Falling back to root AI.` → Step 7.
+On non-zero exit or timeout → warn `⚠ Provider '<provider_name>' failed. Falling back to root AI.`
+
+5. Clean up the temporary file (unconditionally — delete before proceeding to Step 6 or Step 7).
 
 ## Step 6: Response Validation
 
