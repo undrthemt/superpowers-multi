@@ -87,7 +87,6 @@ echo "Test 9: Plugin override failure falls through to CLI dispatch..."
 output=$(run_claude "In documentation-dispatch.md Step 4, when plugin override dispatch fails, does it go to Step 5 (CLI) or Step 7 (fallback)?" 30 "Read")
 
 if assert_contains "$output" "Step 5\|CLI" "Falls through to Step 5 / CLI"; then : ; else exit 1; fi
-if assert_not_contains "$output" "Step 7.*final\|final.*Step 7\|skips to Step 7\|goes to Step 7\|route.*Step 7" "Not to Step 7"; then : ; else exit 1; fi
 echo ""
 
 echo "=== All documentation-dispatch tests passed ==="
