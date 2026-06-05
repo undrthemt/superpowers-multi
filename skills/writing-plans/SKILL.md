@@ -36,7 +36,7 @@ This structure informs the task decomposition. Each task should produce self-con
 <HARD-GATE>
 Do NOT generate plan body content directly while executing this skill.
 For plan body generation: you MUST `Read`
-`skills/subagent-driven-development/documentation-dispatch.md` and
+`../subagent-driven-development/documentation-dispatch.md` and
 follow its logic. Direct generation bypasses the user's
 `documentation_provider` configuration and silently ignores their
 chosen provider.
@@ -50,6 +50,8 @@ Assemble `prompt_content` as:
 2. The file structure analysis completed above
 3. The task granularity guidelines (Bite-Sized Task Granularity section)
 4. The plan document header template (Plan Document Header section)
+
+Continue reading this SKILL.md to obtain the full text of items 3 and 4 before assembling prompt_content.
 
 Pass to documentation-dispatch.md with doc_type="plan".
 The returned content string is written to the plan file by the root AI.
