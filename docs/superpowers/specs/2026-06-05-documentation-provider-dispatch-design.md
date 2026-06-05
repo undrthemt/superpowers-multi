@@ -170,7 +170,7 @@ global_exists  = test -e ${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-co
 - `session_documentation_provider` is set → assign `provider_name = session_documentation_provider`, skip to Step 3. Step 2's undefined check does not apply — Step 3's provider-not-found path handles any invalid cached value.
 - Neither set → fall through to config-loading.
 
-**If at least one file exists** → fall through to config-loading regardless of session state (disk authority: config file governs; mid-session disk edits are respected).
+**If at least one file exists** → fall through to config-loading regardless of session state (disk authority: config file governs; mid-session disk edits are respected). Do not update or consult `session_documentation_provider` — discard any cached value for this dispatch and use only what `config-loading.md` returns.
 
 Call `config-loading.md` with `caller_intent="documentation"`.
 
@@ -179,6 +179,8 @@ If `source == "user-declined"` → set `session_documentation_decline = true`, s
 If `source == "session-only"` AND `session_documentation_provider` is unset → set `session_documentation_provider = merged_config.documentation_provider`. (On the next dispatch, no config file will exist, so the pre-load disk check will short-circuit to the cached value above.)
 
 ### Step 2 — Resolve Provider
+
+**This step is reached only when `config-loading.md` was called in Step 1 and returned a `merged_config`.** When `provider_name` was already assigned by the Step 1 pre-load short-circuit, execution continues from Step 3 — this step is skipped.
 
 ```
 provider_name = merged_config.documentation_provider
@@ -245,6 +247,19 @@ If fallback was triggered by missing config (Step 2) or session decline (Step 1)
 ## 6. Integration: `writing-plans/SKILL.md`
 
 The plan-writing skill currently generates plan content directly (inline) and saves it to `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`. Change the plan generation step to delegate through `documentation-dispatch.md`.
+
+**HARD-GATE required:** Add the following `<HARD-GATE>` block to `writing-plans/SKILL.md` at the integration point:
+
+```
+<HARD-GATE>
+Do NOT generate plan body content directly while executing this skill.
+For plan body generation: you MUST `Read`
+`skills/subagent-driven-development/documentation-dispatch.md` and
+follow its logic. Direct generation bypasses the user's
+`documentation_provider` configuration and silently ignores their
+chosen provider.
+</HARD-GATE>
+```
 
 **Insertion point:** After the "File Structure" section of `writing-plans/SKILL.md` (where files and responsibilities are mapped out), before the skill proceeds to produce the task list. The File Structure analysis and Scope Check can be performed by the root AI. The documentation provider generates the plan body (tasks, steps, code blocks) starting from the Plan Document Header through to the end of the task list.
 
@@ -349,8 +364,9 @@ No changes to provider JSON files, `review-dispatch.md`, `coding-dispatch.md`, o
 The test file must follow the patterns established in `tests/claude-code/test-helpers.sh` and `run-skill-tests.sh`. Minimum scenarios:
 
 1. **Happy path** — `documentation_provider` configured, provider CLI installed → dispatch succeeds, output returned, root AI not invoked.
-2. **Missing config (no config file)** — no config files present, user declines Setup UX → `session_documentation_decline` set, root AI fallback, no second prompt on next invocation.
-3. **Provider not found** — `documentation_provider` set to an unknown name → warn + root AI fallback.
-4. **Provider CLI fails** — `documentation_provider` configured but CLI exits non-zero → warn + root AI fallback.
-5. **Provider returns empty output** — CLI exits 0 but output is empty → Step 6 warns + root AI fallback.
-6. **Session-only cache** — user picks provider, chooses "session only" → `session_documentation_provider` set, second invocation skips Setup UX and uses cached provider.
+2. **User declines Setup UX** — no config files present, user declines → `session_documentation_decline` set, root AI fallback on first invocation.
+3. **Session-decline suppression** — second dispatch call in same session after decline → Step 7 reached silently without re-entering config-loading or showing Setup UX again.
+4. **Provider not found** — `documentation_provider` set to an unknown name → warn + root AI fallback.
+5. **Provider CLI fails** — `documentation_provider` configured but CLI exits non-zero → warn + root AI fallback.
+6. **Provider returns empty output** — CLI exits 0 but output is empty → Step 6 warns + root AI fallback.
+7. **Session-only cache** — user picks provider, chooses "session only" → `session_documentation_provider` set, second invocation (no config file on disk) skips Setup UX and uses cached provider.
