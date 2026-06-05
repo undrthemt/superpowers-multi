@@ -170,7 +170,7 @@ global_exists  = test -e ${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-co
 - `session_documentation_provider` is set → assign `provider_name = session_documentation_provider`, skip to Step 3. Step 2's undefined check does not apply — Step 3's provider-not-found path handles any invalid cached value.
 - Neither set → fall through to config-loading.
 
-**If at least one file exists** → fall through to config-loading regardless of session state (disk authority: config file governs; mid-session disk edits are respected). Do not update or consult `session_documentation_provider` — discard any cached value for this dispatch and use only what `config-loading.md` returns.
+**If at least one file exists** → fall through to config-loading regardless of session state (disk authority: config file governs; mid-session disk edits are respected). Clear `session_documentation_provider` (set to `undefined`) before calling config-loading, so session state does not accumulate stale values. Use only what `config-loading.md` returns.
 
 Call `config-loading.md` with `caller_intent="documentation"`.
 
@@ -261,7 +261,7 @@ chosen provider.
 </HARD-GATE>
 ```
 
-**Insertion point:** After the "File Structure" section of `writing-plans/SKILL.md` (where files and responsibilities are mapped out), before the skill proceeds to produce the task list. The File Structure analysis and Scope Check can be performed by the root AI. The documentation provider generates the plan body (tasks, steps, code blocks) starting from the Plan Document Header through to the end of the task list.
+**Insertion point:** After the agent has finished performing its File Structure analysis (identifying which files will be created or modified and their responsibilities) and before it begins writing any task content. The trigger is the agent's completion of the analysis, not the position of the `## File Structure` heading in the skill file. The File Structure analysis and Scope Check are performed by the root AI; the documentation provider generates the plan body from the Plan Document Header through to the end of the task list.
 
 **Specifically:** After the AI has mapped out which files will be created or modified (File Structure), it assembles the full plan generation prompt incorporating:
 - The spec or requirements
@@ -328,7 +328,7 @@ Task type determination:
   - all other tasks (code files, configuration, tests, etc.) → Read & follow ./coding-dispatch.md (existing behavior)
 ```
 
-In practice, all SDD tasks produce either document artifacts or code/config/test files. The "otherwise" escape hatch is removed — every task routes through one of the two dispatchers, consistent with the HARD-GATE's principle that direct Agent dispatch is never permitted.
+In practice, the large majority of SDD tasks produce either document artifacts or code/config/test files and route through one of the two dispatchers. Tasks that produce neither (e.g., migration-only tasks, release tagging) follow existing behavior — they route through `coding-dispatch.md`, since that dispatcher's fallback to the host AI covers general-purpose task execution. The HARD-GATE's principle that direct Agent dispatch is never permitted remains in force.
 
 The `doc_type` value passed to `documentation-dispatch.md` is inferred from the task description:
 - `"plan"` for plan files
