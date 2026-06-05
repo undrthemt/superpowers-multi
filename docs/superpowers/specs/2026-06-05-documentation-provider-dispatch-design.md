@@ -131,6 +131,8 @@ Step 6.3 (the provider selection flow: discover available providers, list them, 
 
 The Save-Location Helper's merge logic (Step 3c) already applies a general "replace scalar keys present in delta, preserve others" rule. `documentation_provider` is a top-level scalar, so no change to the helper logic is needed. The new key is handled automatically by the existing merge rules.
 
+**Important implementation note:** A delta of `{ "documentation_provider": "<picked>" }` contains no `review_provider` key. Under the existing rule — "replace scalar keys present in delta, preserve others" — any existing `review_provider` value in the target file is left untouched. Implementers must verify that the Save-Location Helper does not unconditionally initialize a `review_provider` key; if it does, that initialization must be made conditional on the delta containing `review_provider`.
+
 ### 4.6 Caller Integration Note
 
 Add to the Caller Integration Notes section:
@@ -177,7 +179,7 @@ Call `config-loading.md` with `caller_intent="documentation"`.
 If `source == "user-declined"` → set `session_documentation_decline = true`, skip to Step 7.
 
 If `source == "session-only"`:
-- If `merged_config.documentation_provider` is a non-empty string AND `session_documentation_provider` is unset → set `session_documentation_provider = merged_config.documentation_provider`. (On the next dispatch, no config file will exist, so the pre-load disk check will short-circuit to the cached value above.)
+- If `merged_config.documentation_provider` is a non-empty string → set `session_documentation_provider = merged_config.documentation_provider`. (The pre-load disk check cleared it before calling config-loading, so it is always unset at this point; the assignment is unconditional.) On the next dispatch, no config file will exist, so the pre-load disk check will short-circuit to the cached value above.
 - If `merged_config.documentation_provider` is absent or empty → treat as user-declined: set `session_documentation_decline = true`, skip to Step 7. (Prevents a re-prompt loop caused by a session-only save that returned no provider value.)
 
 ### Step 2 — Resolve Provider
@@ -264,7 +266,7 @@ chosen provider.
 </HARD-GATE>
 ```
 
-**Insertion point:** After the agent has finished performing its File Structure analysis (identifying which files will be created or modified and their responsibilities) and before it begins writing any task content. The trigger is the agent's completion of the analysis, not the position of the `## File Structure` heading in the skill file. The File Structure analysis and Scope Check are performed by the root AI; the documentation provider generates the plan body from the Plan Document Header through to the end of the task list.
+**Insertion point:** Insert the HARD-GATE block between the `## File Structure` section and the `## Bite-Sized Task Granularity` section in `writing-plans/SKILL.md`. This placement ensures the agent completes its File Structure analysis (identifying which files will be created or modified) before the HARD-GATE fires. The trigger is the agent's completion of the analysis, not merely the heading position. The File Structure analysis and Scope Check are performed by the root AI; the documentation provider generates the plan body from the Plan Document Header through to the end of the task list.
 
 **Specifically:** After the AI has mapped out which files will be created or modified (File Structure), it assembles the full plan generation prompt incorporating:
 - The spec or requirements
