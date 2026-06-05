@@ -176,7 +176,9 @@ Call `config-loading.md` with `caller_intent="documentation"`.
 
 If `source == "user-declined"` → set `session_documentation_decline = true`, skip to Step 7.
 
-If `source == "session-only"` AND `session_documentation_provider` is unset → set `session_documentation_provider = merged_config.documentation_provider`. (On the next dispatch, no config file will exist, so the pre-load disk check will short-circuit to the cached value above.)
+If `source == "session-only"`:
+- If `merged_config.documentation_provider` is a non-empty string AND `session_documentation_provider` is unset → set `session_documentation_provider = merged_config.documentation_provider`. (On the next dispatch, no config file will exist, so the pre-load disk check will short-circuit to the cached value above.)
+- If `merged_config.documentation_provider` is absent or empty → treat as user-declined: set `session_documentation_decline = true`, skip to Step 7. (Prevents a re-prompt loop caused by a session-only save that returned no provider value.)
 
 ### Step 2 — Resolve Provider
 
@@ -275,7 +277,7 @@ prompt_content = <assembled plan prompt including all of the above>
 doc_type = "plan"
 ```
 
-The returned content is written to the plan file. The self-review and Execution Handoff steps proceed as normal, run by the root AI.
+`documentation-dispatch.md` returns the generated content as a string to the caller (the `writing-plans` skill host AI). The host AI writes the returned string to the plan file path. `documentation-dispatch.md` does not write the file itself. The self-review and Execution Handoff steps proceed as normal, run by the root AI operating on the written file.
 
 **No change to plan file location (`docs/superpowers/plans/`), naming conventions, or commit behavior.**
 
@@ -353,7 +355,7 @@ The `doc_type` value passed to `documentation-dispatch.md` is inferred from the 
 | `skills/subagent-driven-development/documentation-dispatch.md` | New file |
 | `skills/requesting-code-review/config-loading.md` | Add `documentation_provider` key; add `"documentation"` intent; add Level 1 merge rule |
 | `skills/writing-plans/SKILL.md` | Delegate plan generation to documentation-dispatch |
-| `skills/subagent-driven-development/SKILL.md` | Add HARD-GATE entry + doc task routing to documentation-dispatch |
+| `skills/subagent-driven-development/SKILL.md` | Add HARD-GATE entry + doc task routing to documentation-dispatch; update `digraph process` node label from `"Read & follow coding-dispatch.md (the only entry point)"` to `"Classify task: doc artifact? → documentation-dispatch.md, else → coding-dispatch.md"` |
 | `tests/claude-code/test-documentation-dispatch.sh` | New test file |
 | `tests/claude-code/run-skill-tests.sh` | Add `"test-documentation-dispatch.sh"` to the `tests` array (not `integration_tests`); all scenarios use mocked CLI commands per `test-helpers.sh` conventions |
 
