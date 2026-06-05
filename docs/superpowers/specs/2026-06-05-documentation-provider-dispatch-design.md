@@ -29,6 +29,7 @@ This design adds a `documentation_provider` config key that routes documentation
 - Modifying `review-dispatch.md` or `coding-dispatch.md`. Documentation dispatch is an independent file.
 - Routing document-review tasks (spec compliance, code quality review). Those remain under `review-dispatch.md`.
 - Adding `invoke_documentation` fields to existing provider JSON files. Providers fall back to `invoke` for now; `invoke_documentation` support is deferred to a follow-up.
+- Adding `plugin_override_documentation` fields to existing provider JSON files. The field is recognized by the dispatch logic (Step 4 of `documentation-dispatch.md`) but not present in any current provider definition. Providers that want documentation-specific plugin dispatch can add it in a future update.
 
 ## 3. Config Schema
 
@@ -86,6 +87,8 @@ The only current use of `caller_intent` inside `config-loading.md` is the Setup 
 
 - `documentation`: `Documentation provider is not configured. Pick one to use.`
 
+**Important:** The Setup UX (Step 6) is only triggered when both config files are absent. Users who already have a config file with `review_provider` or `coding` set, but no `documentation_provider` key, will not enter the Setup UX — `config-loading.md` Step 3 detects valid keys and routes directly to Step 4 (Merge), returning `merged_config` without `documentation_provider`. In that case, `documentation-dispatch.md` Step 2 falls back to root AI silently. No interactive setup path exists for partially-configured users; this is intentional per Section 2's Goals.
+
 ### 4.3 Step 4 — Level 1 Merge Logic
 
 The existing Level 1 merge logic handles `review_provider` as a simple-replace scalar. Add the same rule for `documentation_provider`:
@@ -111,6 +114,8 @@ delta = { "documentation_provider": "<picked>" }
 ```
 
 No `review_provider` is set. No additional prompting is needed (no enabled flag, no rules).
+
+Step 6.3 (the provider selection flow: discover available providers, list them, user picks one) requires no structural modification — it is intent-agnostic. Only Step 6.2 (intro message) and Step 6.4 (delta initialization) are intent-specific and require the changes described in this section.
 
 ### 4.5 Save-Location Helper — Merge Rules
 
@@ -214,7 +219,7 @@ If fallback was triggered by missing config (Step 2) or session decline (Step 1)
 
 The plan-writing skill currently generates plan content directly (inline) and saves it to `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`. Change the plan generation step to delegate through `documentation-dispatch.md`.
 
-**Insertion point:** After the File Structure section of the skill execution (where files and responsibilities are mapped out), and before writing the plan body content. The file structure analysis and scope check can be performed by the root AI. The documentation provider generates the plan body (tasks, steps, code blocks).
+**Insertion point:** After the "File Structure" section of `writing-plans/SKILL.md` (where files and responsibilities are mapped out), before the skill proceeds to produce the task list. The File Structure analysis and Scope Check can be performed by the root AI. The documentation provider generates the plan body (tasks, steps, code blocks) starting from the Plan Document Header through to the end of the task list.
 
 **Specifically:** After the AI has mapped out which files will be created or modified (File Structure), it assembles the full plan generation prompt incorporating:
 - The spec or requirements
