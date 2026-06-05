@@ -99,12 +99,11 @@ Steps:
    - If `input_method` is `"file"`: replace `{{prompt_file}}` in resolved `args` with the temp file path, then run `timeout <timeout_seconds> <command> <args...>`
    - If `input_method` is `"stdin"`: run `timeout <timeout_seconds> <command> <args...> < <temp_file>`
 4. Capture stdout as the documentation response.
+5. Clean up the temporary file (unconditionally — delete regardless of exit code, before proceeding).
 
 On exit 0 → proceed to Step 6.
 
-On non-zero exit or timeout → warn `⚠ Provider '<provider_name>' failed. Falling back to root AI.`
-
-5. Clean up the temporary file (unconditionally — delete before proceeding to Step 6 or Step 7).
+On non-zero exit or timeout → warn `⚠ Provider '<provider_name>' failed. Falling back to root AI.` → Step 7.
 
 ## Step 6: Response Validation
 
