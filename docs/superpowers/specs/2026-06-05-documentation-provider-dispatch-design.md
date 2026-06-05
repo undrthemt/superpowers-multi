@@ -158,15 +158,25 @@ Maintain two session-level variables, parallel to `session_coding_decline` and `
 
 ### Step 1 — Load Config
 
-If `session_documentation_decline == true` → skip to Step 7 silently.
+**Pre-load disk check** (mirrors `coding-dispatch.md`'s disk-authority principle):
 
-If `session_documentation_provider` is set → assign `provider_name = session_documentation_provider` and skip to Step 3 directly. Step 2's undefined check does not apply — Step 3's provider-not-found path handles any invalid cached value.
+```
+project_exists = test -e <repo>/.superpowers/review-config.json
+global_exists  = test -e ${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json
+```
+
+**If neither file exists** (disk authority: session state governs):
+- `session_documentation_decline == true` → skip to Step 7 silently.
+- `session_documentation_provider` is set → assign `provider_name = session_documentation_provider`, skip to Step 3. Step 2's undefined check does not apply — Step 3's provider-not-found path handles any invalid cached value.
+- Neither set → fall through to config-loading.
+
+**If at least one file exists** → fall through to config-loading regardless of session state (disk authority: config file governs; mid-session disk edits are respected).
 
 Call `config-loading.md` with `caller_intent="documentation"`.
 
 If `source == "user-declined"` → set `session_documentation_decline = true`, skip to Step 7.
 
-If `source == "session-only"` → set `session_documentation_provider = merged_config.documentation_provider`.
+If `source == "session-only"` AND `session_documentation_provider` is unset → set `session_documentation_provider = merged_config.documentation_provider`. (On the next dispatch, no config file will exist, so the pre-load disk check will short-circuit to the cached value above.)
 
 ### Step 2 — Resolve Provider
 
@@ -330,7 +340,7 @@ The `doc_type` value passed to `documentation-dispatch.md` is inferred from the 
 | `skills/writing-plans/SKILL.md` | Delegate plan generation to documentation-dispatch |
 | `skills/subagent-driven-development/SKILL.md` | Add HARD-GATE entry + doc task routing to documentation-dispatch |
 | `tests/claude-code/test-documentation-dispatch.sh` | New test file |
-| `tests/claude-code/run-skill-tests.sh` | Add `test-documentation-dispatch.sh` to the `tests` array |
+| `tests/claude-code/run-skill-tests.sh` | Add `"test-documentation-dispatch.sh"` to the `tests` array (not `integration_tests`); all scenarios use mocked CLI commands per `test-helpers.sh` conventions |
 
 No changes to provider JSON files, `review-dispatch.md`, `coding-dispatch.md`, or config file schemas beyond the single new key.
 
