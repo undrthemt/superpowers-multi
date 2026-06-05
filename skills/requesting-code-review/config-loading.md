@@ -4,7 +4,7 @@ Centralized config loader shared by `review-dispatch.md` (Step 2) and `coding-di
 
 ## Inputs
 
-- **caller_intent**: `"review"` or `"coding"`. Used only to tailor the setup-UX intro message.
+- **caller_intent**: `"review"`, `"coding"`, or `"documentation"`. Used only to tailor the setup-UX intro message.
 
 ## Outputs
 
@@ -40,6 +40,7 @@ After Step 2 you have `project_cfg` and `global_cfg`, each a (possibly empty) ob
 | Dotted path | Expected type |
 |---|---|
 | `review_provider` | string |
+| `documentation_provider` | string |
 | `coding` | object |
 | `coding.enabled` | boolean |
 | `coding.default_provider` | string |
@@ -47,6 +48,8 @@ After Step 2 you have `project_cfg` and `global_cfg`, each a (possibly empty) ob
 | `coding.rules[]` | object with exactly `category: string` and `provider: string` (extra fields treated as unknown) |
 
 For each `coding.rules[]` entry: drop unknown sub-keys with a warning of the form `⚠ Unknown sub-key 'coding.rules[<i>].<key>' in <path>; ignored.` and keep the entry. If `category` or `provider` is missing or wrong-typed, drop the entire entry with a single warning `⚠ Invalid 'coding.rules[<i>]' in <path>; ignored.`.
+
+If `documentation_provider` is not a string, emit `⚠ Invalid value for 'documentation_provider' in <path> (expected string); ignored.` and exclude it.
 
 ## Step 3: Bootstrap Detection
 
@@ -64,6 +67,7 @@ Compute `merged_config` by combining `global_cfg` (defaults) with `project_cfg` 
 ### Level 1 — top-level keys
 
 - `review_provider`: simple replace. If `project_cfg.review_provider` is present, use it; else use `global_cfg.review_provider`; else leave undefined.
+- `documentation_provider`: simple replace. If `project_cfg.documentation_provider` is present, use it; else if `global_cfg.documentation_provider` is present, use it; else leave undefined.
 - `coding`: if either side has a `coding` object, recurse into Level 2 to produce `merged.coding`. If neither has it, leave undefined.
 
 ### Level 2 — `coding.*`
@@ -116,10 +120,13 @@ Triggered only when both files are empty after Step 2.
 2. **Show intro** based on `caller_intent`:
    - `review`: `Code review provider is not configured. Pick one to use.`
    - `coding`: `Multi-AI coding dispatch is not configured. Pick a provider to set up.`
+   - `documentation`: `Documentation provider is not configured. Pick one to use.`
 
 3. **Provider selection.** Present the `available` list (name + description from each provider JSON). Ask the user to pick one. Treat any of these as cancellation: an explicit "cancel" / "abort" / "no" reply, an empty input, or Ctrl-C. On cancellation → return `{ merged_config: {}, source: "user-declined" }`.
 
-4. **Build the delta.** Start with `delta = { "review_provider": "<picked>" }`.
+4. **Build the delta** based on `caller_intent`:
+   - If `caller_intent == "review"` or `caller_intent == "coding"`: `delta = { "review_provider": "<picked>" }` (existing behavior; extend with the `coding` block below if `caller_intent == "coding"`).
+   - If `caller_intent == "documentation"`: `delta = { "documentation_provider": "<picked>" }` (no `review_provider` key). No additional prompting is needed.
 
    **If `caller_intent == "coding"`**, extend the delta with a `coding` block by asking the user, in order:
    a. Default provider for coding (default: the provider picked in step 3).
@@ -184,3 +191,4 @@ A reusable subroutine. Used by Step 6 above and by `coding-dispatch.md`'s coding
 
 - `review-dispatch.md` Step 2 calls this procedure with `caller_intent="review"` and uses `merged_config.review_provider` for downstream provider resolution. If `source == "user-declined"` or `merged_config.review_provider` is undefined after a non-bootstrap merge, the dispatcher proceeds to its existing scan-and-prompt fallback.
 - `coding-dispatch.md` Step 1 calls this procedure with `caller_intent="coding"` and uses `merged_config.coding` for downstream routing. Treat `coding` absent as "needs setup" (prompt the user) and `coding.enabled === false` as "disabled" (silent fallback). When `coding` is present but `coding.enabled` is absent, treat it as `true` (backward compatibility with configs that only set `default_provider` or `rules`).
+- `documentation-dispatch.md` Step 1 calls this procedure with `caller_intent="documentation"` and uses `merged_config.documentation_provider` for downstream provider resolution. If `source == "user-declined"` or `merged_config.documentation_provider` is undefined, the dispatcher falls back to root AI silently (no secondary prompt). When `source == "session-only"` and `merged_config.documentation_provider` is a non-empty string, the dispatcher caches the value in `session_documentation_provider` for the session.
