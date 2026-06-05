@@ -87,7 +87,7 @@ The only current use of `caller_intent` inside `config-loading.md` is the Setup 
 
 - `documentation`: `Documentation provider is not configured. Pick one to use.`
 
-**Important:** The Setup UX (Step 6) is only triggered when both config files are absent. Users who already have a config file with `review_provider` or `coding` set, but no `documentation_provider` key, will not enter the Setup UX — `config-loading.md` Step 3 detects valid keys and routes directly to Step 4 (Merge), returning `merged_config` without `documentation_provider`. In that case, `documentation-dispatch.md` Step 2 falls back to root AI silently. No interactive setup path exists for partially-configured users; this is intentional per Section 2's Goals.
+**Important:** The Setup UX (Step 6) is triggered when both config files yield no valid keys — whether because they are absent, corrupt, or contain only unknown keys. Users who already have a config file with `review_provider` or `coding` set, but no `documentation_provider` key, will not enter the Setup UX — `config-loading.md` Step 3 detects valid keys and routes directly to Step 4 (Merge), returning `merged_config` without `documentation_provider`. In that case, `documentation-dispatch.md` Step 2 falls back to root AI silently. No interactive setup path exists for partially-configured users; this is intentional per Section 2's Goals.
 
 ### 4.3 Step 4 — Level 1 Merge Logic
 
@@ -115,6 +115,16 @@ delta = { "documentation_provider": "<picked>" }
 
 No `review_provider` is set. No additional prompting is needed (no enabled flag, no rules).
 
+**Exact replacement text for `config-loading.md` Step 6.4, first sentence:**
+
+Replace:
+> `Start with delta = { "review_provider": "<picked>" }.`
+
+With:
+> `Build the delta based on caller_intent:`
+> `- If caller_intent == "review" or "coding": delta = { "review_provider": "<picked>" } (existing behavior; extend with the coding block if caller_intent == "coding" per existing logic).`
+> `- If caller_intent == "documentation": delta = { "documentation_provider": "<picked>" } (no review_provider key).`
+
 Step 6.3 (the provider selection flow: discover available providers, list them, user picks one) requires no structural modification — it is intent-agnostic. Only Step 6.2 (intro message) and Step 6.4 (delta initialization) are intent-specific and require the changes described in this section.
 
 ### 4.5 Save-Location Helper — Merge Rules
@@ -140,17 +150,23 @@ Location: `skills/subagent-driven-development/documentation-dispatch.md`
 
 ### Session State
 
-Maintain one session-level flag, parallel to `session_coding_decline` in `coding-dispatch.md`:
+Maintain two session-level variables, parallel to `session_coding_decline` and `session_coding_cache` in `coding-dispatch.md`:
 
-- **`session_documentation_decline`** (boolean, default `false`): set to `true` when the user declines configuration during the Setup UX within this session. When `true`, skip Steps 1–2 and go directly to Step 7 (root AI fallback) without prompting the user again.
+- **`session_documentation_decline`** (boolean, default `false`): set to `true` when the user declines configuration during the Setup UX within this session. When `true`, skip to Step 7 silently without invoking config-loading.
+
+- **`session_documentation_provider`** (string, default `undefined`): set when the user picks a provider and chooses "session only" (source == `"session-only"`). On subsequent dispatches within the same session, this value is used directly instead of re-entering config-loading, preventing repeated Setup UX prompts for session-only users.
 
 ### Step 1 — Load Config
 
 If `session_documentation_decline == true` → skip to Step 7 silently.
 
+If `session_documentation_provider` is set → use it as `provider_name`, skip to Step 3 directly.
+
 Call `config-loading.md` with `caller_intent="documentation"`.
 
 If `source == "user-declined"` → set `session_documentation_decline = true`, skip to Step 7.
+
+If `source == "session-only"` → set `session_documentation_provider = merged_config.documentation_provider`.
 
 ### Step 2 — Resolve Provider
 
@@ -194,16 +210,17 @@ Steps:
 1. Write `prompt_content` to a temp file.
 2. Run the CLI command with the resolved args.
 3. Capture output.
+4. Clean up the temporary file.
 
-On success (non-empty output, exit 0) → return output.
+On exit 0 → proceed to Step 6 (Response Validation).
 
-On failure (empty output, non-zero exit, timeout) → warn `⚠ Provider '<provider_name>' failed. Falling back to root AI.` → Step 7.
+On non-zero exit or timeout → warn `⚠ Provider '<provider_name>' failed. Falling back to root AI.` → Step 7.
 
 ### Step 6 — Response Validation
 
-Check that output is non-empty. If empty → warn and fall back to Step 7.
+Check that output is non-empty. If empty → warn `⚠ Provider '<provider_name>' returned empty output. Falling back to root AI.` → Step 7.
 
-No structural validation (no required sections). Documentation output format varies by `doc_type`.
+No structural validation (no required sections). Documentation output format varies by `doc_type`. If non-empty → return output.
 
 ### Step 7 — Root AI Fallback
 
@@ -276,17 +293,16 @@ When SDD identifies that a task is primarily about writing a document (not code)
 
 ```
 Task type determination:
-  - task produces code files → Read & follow ./coding-dispatch.md
   - task produces document artifacts (plan, design doc, Confluence page) → Read & follow ./documentation-dispatch.md
-  - otherwise → host AI directly
+  - all other tasks (code files, configuration, tests, etc.) → Read & follow ./coding-dispatch.md (existing behavior)
 ```
+
+In practice, all SDD tasks produce either document artifacts or code/config/test files. The "otherwise" escape hatch is removed — every task routes through one of the two dispatchers, consistent with the HARD-GATE's principle that direct Agent dispatch is never permitted.
 
 The `doc_type` value passed to `documentation-dispatch.md` is inferred from the task description:
 - `"plan"` for plan files
 - `"design"` for design documents
 - `"documentation"` for all other document types (Confluence pages, READMEs, etc.)
-
-For tasks without a clear documentation purpose, default behavior (root AI) is unchanged.
 
 ## 8. Fallback Summary
 
@@ -310,3 +326,14 @@ For tasks without a clear documentation purpose, default behavior (root AI) is u
 | `tests/claude-code/test-documentation-dispatch.sh` | New test file |
 
 No changes to provider JSON files, `review-dispatch.md`, `coding-dispatch.md`, or config file schemas beyond the single new key.
+
+### Test Scenarios for `test-documentation-dispatch.sh`
+
+The test file must follow the patterns established in `tests/claude-code/test-helpers.sh` and `run-skill-tests.sh`. Minimum scenarios:
+
+1. **Happy path** — `documentation_provider` configured, provider CLI installed → dispatch succeeds, output returned, root AI not invoked.
+2. **Missing config (no config file)** — no config files present, user declines Setup UX → `session_documentation_decline` set, root AI fallback, no second prompt on next invocation.
+3. **Provider not found** — `documentation_provider` set to an unknown name → warn + root AI fallback.
+4. **Provider CLI fails** — `documentation_provider` configured but CLI exits non-zero → warn + root AI fallback.
+5. **Provider returns empty output** — CLI exits 0 but output is empty → Step 6 warns + root AI fallback.
+6. **Session-only cache** — user picks provider, chooses "session only" → `session_documentation_provider` set, second invocation skips Setup UX and uses cached provider.
