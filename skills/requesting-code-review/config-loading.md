@@ -49,8 +49,6 @@ After Step 2 you have `project_cfg` and `global_cfg`, each a (possibly empty) ob
 
 For each `coding.rules[]` entry: drop unknown sub-keys with a warning of the form `⚠ Unknown sub-key 'coding.rules[<i>].<key>' in <path>; ignored.` and keep the entry. If `category` or `provider` is missing or wrong-typed, drop the entire entry with a single warning `⚠ Invalid 'coding.rules[<i>]' in <path>; ignored.`.
 
-If `documentation_provider` is not a string, emit `⚠ Invalid value for 'documentation_provider' in <path> (expected string); ignored.` and exclude it.
-
 ## Step 3: Bootstrap Detection
 
 If `project_cfg == {}` AND `global_cfg == {}`:
@@ -125,7 +123,8 @@ Triggered only when both files are empty after Step 2.
 3. **Provider selection.** Present the `available` list (name + description from each provider JSON). Ask the user to pick one. Treat any of these as cancellation: an explicit "cancel" / "abort" / "no" reply, an empty input, or Ctrl-C. On cancellation → return `{ merged_config: {}, source: "user-declined" }`.
 
 4. **Build the delta** based on `caller_intent`:
-   - If `caller_intent == "review"` or `caller_intent == "coding"`: `delta = { "review_provider": "<picked>" }` (existing behavior; extend with the `coding` block below if `caller_intent == "coding"`).
+   - If `caller_intent == "review"`: `delta = { "review_provider": "<picked>" }`.
+   - If `caller_intent == "coding"`: `delta = { "review_provider": "<picked>" }`. Then extend with the `coding` block below.
    - If `caller_intent == "documentation"`: `delta = { "documentation_provider": "<picked>" }` (no `review_provider` key). No additional prompting is needed.
 
    **If `caller_intent == "coding"`**, extend the delta with a `coding` block by asking the user, in order:
