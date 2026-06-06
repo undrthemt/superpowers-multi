@@ -1,5 +1,20 @@
 # Superpowers Release Notes
 
+## v5.0.13 (2026-06-06)
+
+### Documentation Provider Dispatch (fork-specific)
+
+Extends the multi-AI dispatch system to route documentation-authoring tasks (plan files, design docs, READMEs) to a configured AI provider, mirroring the existing `coding-dispatch.md` and `review-dispatch.md` architecture.
+
+- **`documentation-dispatch.md`** (new) — centralized 7-step dispatcher for documentation tasks. Reads `documentation_provider` from config, handles the Setup UX when neither config file exists, routes to the configured provider via CLI dispatch, validates output, and falls back to the root AI on failure or when disabled. Session state (`session_documentation_decline`, `session_documentation_provider`) prevents re-prompting within a conversation.
+- **`config-loading.md`** — adds `documentation_provider` key and intent to the shared config-loading procedure. The key is optional; existing configs without it continue to work unchanged.
+- **`writing-plans/SKILL.md`** — adds a `<HARD-GATE>` block that forces the host AI to read `documentation-dispatch.md` before generating any plan file, preventing silent bypass of the user's `documentation_provider` setting.
+- **`subagent-driven-development/SKILL.md`** — adds documentation task routing and dispatch call templates so SDD design-doc and plan authoring steps also go through the dispatcher.
+- **`test-documentation-dispatch.sh`** (new) — 9 behavioral test scenarios covering: config absent (silent fallback), config present with provider set, session decline suppression, session-only provider caching, plugin override priority, and temp file cleanup on both success and failure branches.
+- **Backward compatible** — the `documentation_provider` key is optional. Projects without it see no behavior change; the dispatcher silently falls back to the root AI.
+
+Source: `docs/superpowers/specs/2026-06-05-documentation-provider-dispatch-design.md`.
+
 ## v5.0.12 (2026-05-13)
 
 ### SDD / requesting-code-review: HARD-GATE against silent dispatch bypass (fork-specific)
