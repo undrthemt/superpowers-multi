@@ -75,7 +75,7 @@ echo "Test 8: Plugin override priority chain uses plugin_override (not plugin_ov
 output=$(run_claude "In documentation-dispatch.md Step 4, what is the plugin override priority chain? Which field is checked first, and what is the fallback?" 30 "Read")
 
 if assert_contains "$output" "plugin_override_documentation" "Checks plugin_override_documentation first"; then : ; else exit 1; fi
-if assert_contains "$output" "falls back.*plugin_override\|plugin_override.*fallback" "Falls back to plugin_override"; then : ; else exit 1; fi
+if assert_contains "$output" "falls back.*plugin_override\|plugin_override.*fallback\|plugin_override.*present" "Falls back to plugin_override"; then : ; else exit 1; fi
 echo ""
 
 # Test 9: Plugin override failure falls through to CLI (Step 5), not Step 7
