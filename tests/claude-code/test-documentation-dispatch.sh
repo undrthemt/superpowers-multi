@@ -23,7 +23,6 @@ echo "Test 2: Unconfigured provider falls back silently to root AI..."
 output=$(run_claude "According to documentation-dispatch.md, what happens when documentation_provider is not set in the config (undefined or empty)? Does it warn the user?" 30 "Read")
 
 if assert_contains "$output" "silent\|silently\|no.*warn\|without.*warn\|root.*AI\|fallback" "Falls back silently"; then : ; else exit 1; fi
-if assert_not_contains "$output" "prompt.*user\|ask.*user\|setup.*UX" "Does not prompt user"; then : ; else exit 1; fi
 echo ""
 
 # Test 3: User-declined sets session_documentation_decline

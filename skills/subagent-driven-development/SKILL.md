@@ -262,8 +262,8 @@ You: I'm using Subagent-Driven Development to execute this plan.
 [Read plan file once: docs/superpowers/plans/feature-plan.md]
 [Extract all 5 tasks with full text and context]
 [Create TodoWrite with all tasks — per-task template:
-  - Classify task category
-  - Read & follow ./coding-dispatch.md to dispatch implementation
+  - Classify task category and artifact type (doc artifact? → documentation-dispatch; else → coding-dispatch)
+  - Read & follow ./documentation-dispatch.md OR ./coding-dispatch.md to dispatch implementation
   - Read & follow ./spec-review-prompt.md to dispatch spec review
   - Read & follow ./code-quality-reviewer-prompt.md to dispatch code quality review
   - Mark task complete]
