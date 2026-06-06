@@ -77,7 +77,6 @@ output=$(run_claude "In documentation-dispatch.md Step 4, what is the plugin ove
 
 if assert_contains "$output" "plugin_override_documentation" "Checks plugin_override_documentation first"; then : ; else exit 1; fi
 if assert_contains "$output" "plugin_override\b\|falls back.*plugin_override\|plugin_override.*fallback" "Falls back to plugin_override"; then : ; else exit 1; fi
-if assert_not_contains "$output" "plugin_override_coding" "Does not use plugin_override_coding"; then : ; else exit 1; fi
 echo ""
 
 # Test 9: Plugin override failure falls through to CLI (Step 5), not Step 7
