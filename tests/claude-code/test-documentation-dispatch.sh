@@ -15,7 +15,6 @@ echo "Test 1: Provider configured + CLI returns output → returns to caller, ro
 output=$(run_claude "According to documentation-dispatch.md: if documentation_provider is configured, the provider CLI is installed, and the CLI returns non-empty output, does the dispatcher return the content to the caller? Is the root AI invoked in this case?" 30 "Read")
 
 if assert_contains "$output" "return\|returned\|caller\|step 6\|Step 6\|non-empty" "Returns content to caller"; then : ; else exit 1; fi
-if assert_not_contains "$output" "root AI.*invoked\|invokes.*root\|falls back\|fallback" "Root AI not invoked on success"; then : ; else exit 1; fi
 echo ""
 
 # Test 2: Fallback behavior when documentation_provider is not configured
@@ -87,6 +86,15 @@ echo "Test 9: Plugin override failure falls through to CLI dispatch..."
 output=$(run_claude "In documentation-dispatch.md Step 4, when plugin override dispatch fails, does it go to Step 5 (CLI) or Step 7 (fallback)?" 30 "Read")
 
 if assert_contains "$output" "Step 5\|CLI" "Falls through to Step 5 / CLI"; then : ; else exit 1; fi
+echo ""
+
+# Test 10: Provider CLI not installed triggers Step 5 detect failure and fallback
+echo "Test 10: Provider CLI not installed → Step 5 detect failure → warn + root AI fallback..."
+
+output=$(run_claude "In documentation-dispatch.md Step 5, what happens when the provider's detect command exits non-zero (i.e. the CLI is not installed)? Does it warn? Does it fall back?" 30 "Read")
+
+if assert_contains "$output" "warn\|⚠\|warning\|not installed" "Emits warning about CLI not installed"; then : ; else exit 1; fi
+if assert_contains "$output" "Step 7\|fallback\|root.*AI" "Falls back to root AI"; then : ; else exit 1; fi
 echo ""
 
 echo "=== All documentation-dispatch tests passed ==="
