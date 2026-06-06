@@ -104,8 +104,7 @@ digraph process {
 
     subgraph cluster_per_task {
         label="Per Task";
-        "Classify task category (plan tag → AI auto-classification)" [shape=box];
-        "Classify task: doc artifact? → documentation-dispatch.md, else → coding-dispatch.md" [shape=box];
+        "Classify task: doc artifact? → documentation-dispatch.md; else classify category → coding-dispatch.md" [shape=box];
         "Implementation result (provider OR internal fallback)" [shape=diamond];
         "Implementer subagent asks questions?" [shape=diamond];
         "Answer questions, provide context" [shape=box];
@@ -124,12 +123,11 @@ digraph process {
     "Dispatch final code reviewer (external provider → host fallback)" [shape=box];
     "Use superpowers-multi:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
-    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Classify task category (plan tag → AI auto-classification)";
-    "Classify task category (plan tag → AI auto-classification)" -> "Classify task: doc artifact? → documentation-dispatch.md, else → coding-dispatch.md";
-    "Classify task: doc artifact? → documentation-dispatch.md, else → coding-dispatch.md" -> "Implementation result (provider OR internal fallback)";
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Classify task: doc artifact? → documentation-dispatch.md; else classify category → coding-dispatch.md";
+    "Classify task: doc artifact? → documentation-dispatch.md; else classify category → coding-dispatch.md" -> "Implementation result (provider OR internal fallback)";
     "Implementation result (provider OR internal fallback)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
-    "Answer questions, provide context" -> "Classify task: doc artifact? → documentation-dispatch.md, else → coding-dispatch.md";
+    "Answer questions, provide context" -> "Classify task: doc artifact? → documentation-dispatch.md; else classify category → coding-dispatch.md";
     "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
     "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer (external provider → host fallback, ./spec-review-prompt.md)";
     "Dispatch spec reviewer (external provider → host fallback, ./spec-review-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
@@ -141,7 +139,7 @@ digraph process {
     "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer (external provider → host fallback, ./code-quality-reviewer-prompt.md)" [label="re-review"];
     "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
     "Mark task complete in TodoWrite" -> "More tasks remain?";
-    "More tasks remain?" -> "Classify task category (plan tag → AI auto-classification)" [label="yes"];
+    "More tasks remain?" -> "Classify task: doc artifact? → documentation-dispatch.md; else classify category → coding-dispatch.md" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer (external provider → host fallback)" [label="no"];
     "Dispatch final code reviewer (external provider → host fallback)" -> "Use superpowers-multi:finishing-a-development-branch";
 }
