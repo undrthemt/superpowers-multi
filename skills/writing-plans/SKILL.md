@@ -33,6 +33,30 @@ Before defining tasks, map out which files will be created or modified and what 
 
 This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
 
+<HARD-GATE>
+Do NOT generate plan body content directly while executing this skill.
+For plan body generation: you MUST `Read`
+`../subagent-driven-development/documentation-dispatch.md` and
+follow its logic. Direct generation bypasses the user's
+`documentation_provider` configuration and silently ignores their
+chosen provider.
+
+The plan body is everything from the Plan Document Header through to the
+end of the task list. File Structure analysis and Scope Check are
+performed by the root AI before invoking the dispatcher.
+
+Assemble `prompt_content` as:
+1. The spec or requirements (from the input provided by the user)
+2. The file structure analysis completed above
+3. The task granularity guidelines (Bite-Sized Task Granularity section)
+4. The plan document header template (Plan Document Header section)
+
+Continue reading this SKILL.md to obtain the full text of items 3 and 4 before assembling prompt_content.
+
+Pass to documentation-dispatch.md with doc_type="plan".
+The returned content string is written to the plan file by the root AI.
+</HARD-GATE>
+
 ## Bite-Sized Task Granularity
 
 **Each step is one action (2-5 minutes):**
