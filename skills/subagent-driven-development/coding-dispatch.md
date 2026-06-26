@@ -30,7 +30,7 @@ This dispatcher maintains two pieces of session-level state across dispatches in
 
 `session_coding_decline` and `session_coding_cache` are mutually exclusive: setting one clears the other.
 
-- `session_dispatch_log = []` — append-only list of all external dispatches in this session. Shared with `review-dispatch.md`. Each entry: `{ type: "coding" | "review", task_name: string, provider: string }`. Initialize to `[]` if not already set; never cleared within a session.
+- `session_dispatch_log = []` — append-only list of all external dispatches in this session. Shared with `review-dispatch.md`. Each entry: `{ type: "coding" | "review", task_name: string, provider: string }`. If not already set, treat it as `[]`; never cleared within a session.
 
 ### Pre-load short-circuit (runs BEFORE calling config-loading)
 
