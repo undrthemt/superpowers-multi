@@ -34,9 +34,16 @@ These are mutually exclusive: setting one clears the other.
 
 **Disk authority principle:** session state (cache or decline) only short-circuits when the disk has nothing to say. If any config file exists on disk, defer to config-loading so disk edits are respected.
 
-Quick disk check:
-- `project_exists = test -e <repo>/.superpowers/review-config.json`
-- `global_exists  = test -e ${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json`
+Run this bash check now:
+
+```bash
+test -e ".superpowers/review-config.json" \
+  && echo "project_exists=yes" || echo "project_exists=no"
+test -e "${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json" \
+  && echo "global_exists=yes" || echo "global_exists=no"
+```
+
+Set `project_exists` and `global_exists` from the output above.
 
 If **neither** file exists (config-loading would otherwise enter Setup UX):
 - `session_coding_cache` set → set `merged_config = { coding: <session_coding_cache> }`, skip the config-loading call, and proceed to Step 2.
