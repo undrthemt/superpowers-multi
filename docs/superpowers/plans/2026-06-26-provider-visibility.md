@@ -287,7 +287,7 @@ Find the exact text:
 
 Replace with the text below. The replacement spans from "**If tests pass:**" through the new "### Step 3: Determine Base Branch" heading. The inner fenced block (showing the Dispatch Summary output format) must be preserved exactly as shown:
 
-```
+````
 **If tests pass:** Continue to Step 2.
 
 ### Step 2: Dispatch Summary
@@ -316,7 +316,7 @@ Fill the table from `session_dispatch_log` entries in order. For the breakdown, 
 Then continue to Step 3.
 
 ### Step 3: Determine Base Branch
-```
+````
 
 (The replacement ends at "### Step 3: Determine Base Branch" — the old "### Step 2: Determine Base Branch" heading is removed and replaced with "### Step 3: Determine Base Branch".)
 
@@ -370,7 +370,21 @@ There are exactly 3 occurrences of `Then: Cleanup worktree (Step 5)` (under Opti
 Then: Cleanup worktree (Step 6)
 ```
 
-- [ ] **Step 7: Verify step structure**
+- [ ] **Step 7: Update the "Core principle" line in Overview**
+
+Find in the Overview section:
+
+```
+**Core principle:** Verify tests → Present options → Execute choice → Clean up.
+```
+
+Replace with:
+
+```
+**Core principle:** Verify tests → Summarize dispatch → Present options → Execute choice → Clean up.
+```
+
+- [ ] **Step 8: Verify step structure**
 
 ```bash
 grep -n "^### Step" skills/finishing-a-development-branch/SKILL.md
@@ -387,13 +401,13 @@ Expected (6 lines):
 ### Step 6: Cleanup Worktree
 ```
 
-Verify no stale Step 5 cross-references remain:
+Verify no stale cleanup-worktree Step 5 cross-references remain:
 
 ```bash
-grep -n "Step 5)" skills/finishing-a-development-branch/SKILL.md
+grep -n "Cleanup worktree (Step 5)" skills/finishing-a-development-branch/SKILL.md
 ```
 
-Expected: 0 matches.
+Expected: 0 matches. (Note: line ~197 still contains `executing-plans (Step 5)` — that refers to the `executing-plans` skill's own Step 5, not to this file's cleanup step, so it is intentionally not updated.)
 
 Verify Step 6 cross-references:
 
@@ -403,7 +417,7 @@ grep -c "Step 6)" skills/finishing-a-development-branch/SKILL.md
 
 Expected: 3.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 git add skills/finishing-a-development-branch/SKILL.md
