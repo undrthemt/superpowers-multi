@@ -154,7 +154,7 @@ A reusable subroutine. Used by Step 6 above and by `coding-dispatch.md`'s coding
 
 1. Present three choices, exactly:
    ```
-   A. User global (recommended) — ${XDG_CONFIG_HOME:-~/.config}/superpowers/review-config.json
+   A. User global (recommended) — ${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json
    B. This project only        — <repo>/.superpowers/review-config.json
    C. Don't save (session only) — remember just for this session
    ```
