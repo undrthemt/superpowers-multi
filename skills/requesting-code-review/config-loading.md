@@ -17,11 +17,19 @@ Return an object with:
 - `project_path = "<repo>/.superpowers/review-config.json"` — resolved against the current working directory's repo root.
 - `global_path  = "${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json"` — honor `XDG_CONFIG_HOME` if set, otherwise fall back to `$HOME/.config`.
 
-Bash one-liner used internally:
+**Run this now** to resolve the actual file paths for this session:
+
 ```bash
 GLOBAL_PATH="${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json"
 PROJECT_PATH=".superpowers/review-config.json"
+printf "global_path=%s\nglobal_exists=%s\nproject_path=%s\nproject_exists=%s\n" \
+  "$GLOBAL_PATH" \
+  "$(test -e "$GLOBAL_PATH" && echo yes || echo no)" \
+  "$PROJECT_PATH" \
+  "$(test -e "$PROJECT_PATH" && echo yes || echo no)"
 ```
+
+Note the output. For all file operations in Steps 2 and 6, use the `global_path` and `project_path` values as reported above — do **not** re-derive them from the template; the reported values are already shell-expanded.
 
 ## Step 2: Load Both Files
 
