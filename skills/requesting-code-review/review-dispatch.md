@@ -17,6 +17,10 @@ The caller provides:
 - **additional_checks** (optional): markdown block appended to the prompt before dispatch
 - **template_placeholders**: key-value pairs to fill in the template (e.g. DESCRIPTION, BASE_SHA, HEAD_SHA, PLAN_OR_REQUIREMENTS, WHAT_WAS_IMPLEMENTED)
 
+## Session State
+
+This dispatcher appends to `session_dispatch_log` — a session-level array shared with `coding-dispatch.md`. Each successful external dispatch (Step 4 or Step 5) adds one entry of the form `{ type: "review", task_name: string, provider: string }`, where `task_name` is the value of the `{DESCRIPTION}` template placeholder. If `session_dispatch_log` is not yet initialized, treat it as `[]`.
+
 ## Step 1: Select Template
 
 Based on review_type:
@@ -51,10 +55,11 @@ If `plugin_override` is non-null AND the current host AI matches `plugin_overrid
 
 1. Fill template placeholders with caller-provided values
 2. If `additional_checks` is provided, append it to the filled template
-3. Dispatch as a subagent via `plugin_override.subagent` type with the filled prompt
-4. Validate the response (see Step 7)
-5. If validation passes → return the result (done)
-6. If validation fails → continue to Step 6 (Fallback)
+3. Announce to the user: `[review] <DESCRIPTION> → <provider_name>` and append `{ type: "review", task_name: DESCRIPTION, provider: provider_name }` to `session_dispatch_log`.
+4. Dispatch as a subagent via `plugin_override.subagent` type with the filled prompt
+5. Validate the response (see Step 7)
+6. If validation passes → return the result (done)
+7. If validation fails → continue to Step 6 (Fallback)
 
 If `plugin_override` is null or host does not match → continue to Step 5.
 
@@ -69,15 +74,17 @@ If `plugin_override` is null or host does not match → continue to Step 5.
 
 4. Write the filled prompt to a temporary file (e.g. `/tmp/review-prompt-<timestamp>.md`)
 
-5. Build and execute the CLI command:
+5. Announce to the user: `[review] <DESCRIPTION> → <provider_name>` and append `{ type: "review", task_name: DESCRIPTION, provider: provider_name }` to `session_dispatch_log`.
+
+6. Build and execute the CLI command:
    - If `input_method` is `"file"`: replace `{{prompt_file}}` in `args` with the temp file path, then run `timeout <timeout_seconds> <command> <args...>`
    - If `input_method` is `"stdin"`: run `timeout <timeout_seconds> <command> <args...> < <temp_file>`
 
-6. Capture stdout as the review response
+7. Capture stdout as the review response
 
-7. Clean up the temporary file
+8. Clean up the temporary file
 
-8. Validate the response (see Step 7)
+9. Validate the response (see Step 7)
    - If valid → return the result (done)
    - If invalid or execution error (including timeout) → go to Step 6 (Fallback)
 
