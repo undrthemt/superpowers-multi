@@ -28,7 +28,9 @@ This dispatcher maintains two pieces of session-level state across dispatches in
 - `session_coding_decline = true` — set when the user declined coding setup, or cancelled the bootstrap setup in `config-loading.md`; suppresses re-prompting.
 - `session_coding_cache = { enabled, default_provider, rules }` — set when the user agreed to coding setup but chose `"session-only"` save (in case 2 of this dispatcher, or in `config-loading.md` Step 6); provides the in-memory coding block for subsequent dispatches.
 
-These are mutually exclusive: setting one clears the other.
+`session_coding_decline` and `session_coding_cache` are mutually exclusive: setting one clears the other.
+
+- `session_dispatch_log = []` — append-only list of all external dispatches in this session. Shared with `review-dispatch.md`. Each entry: `{ type: "coding" | "review", task_name: string, provider: string }`. Initialize to `[]` if not already set; never cleared within a session.
 
 ### Pre-load short-circuit (runs BEFORE calling config-loading)
 
@@ -124,10 +126,11 @@ If the resolved override is non-null AND the current host AI matches its `host` 
 
 1. Save current HEAD SHA as `pre_dispatch_sha`: `git rev-parse HEAD`
 2. Fill `./coding-prompt.md` template placeholders with caller-provided values
-3. Dispatch as a subagent via the override's `subagent` type with the filled prompt
-4. Validate the response (see Step 6)
-5. If validation passes → return the result (done)
-6. If validation fails → continue to Step 5 (CLI Dispatch)
+3. Announce to the user: `[coding] <task_name> → <provider_name>` and append `{ type: "coding", task_name: task_name, provider: provider_name }` to `session_dispatch_log`.
+4. Dispatch as a subagent via the override's `subagent` type with the filled prompt
+5. Validate the response (see Step 6)
+6. If validation passes → return the result (done)
+7. If validation fails → continue to Step 5 (CLI Dispatch)
 
 If the resolved override is null or host does not match → continue to Step 5.
 
@@ -144,15 +147,17 @@ Resolve invocation config: for each field (`command`, `args`, `input_method`, `t
 
 4. Write the filled prompt to a temporary file (e.g. `/tmp/coding-prompt-<timestamp>.md`)
 
-5. Build and execute the CLI command:
+5. Announce to the user: `[coding] <task_name> → <provider_name>` and append `{ type: "coding", task_name: task_name, provider: provider_name }` to `session_dispatch_log`.
+
+6. Build and execute the CLI command:
    - If `input_method` is `"file"`: replace `{{prompt_file}}` in resolved `args` with the temp file path, then run `timeout <timeout_seconds> <command> <args...>`
    - If `input_method` is `"stdin"`: run `timeout <timeout_seconds> <command> <args...> < <temp_file>`
 
-6. Capture stdout as the coding response
+7. Capture stdout as the coding response
 
-7. Clean up the temporary file
+8. Clean up the temporary file
 
-8. Validate the response (see Step 6)
+9. Validate the response (see Step 6)
    - If valid → return the result (done)
    - If invalid or execution error (including timeout) → check for Q&A (see Q&A Handling), then go to Step 7 (Fallback)
 
