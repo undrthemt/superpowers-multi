@@ -7,7 +7,7 @@ description: Use when executing implementation plans with independent tasks in t
 
 Execute plan by dispatching fresh subagent per task, with two-stage external review after each: spec compliance review first, then code quality review. Reviews dispatch via a configurable external AI provider with host AI fallback (see `../requesting-code-review/review-dispatch.md`).
 
-**Coding dispatch:** Before dispatching the host AI implementer, the system can route implementation tasks to an external AI coding provider based on task category (frontend, backend, etc.). Configuration is layered: an optional user global config at `${XDG_CONFIG_HOME:-~/.config}/superpowers/review-config.json` provides defaults, and an optional project config at `.superpowers/review-config.json` overrides per-project. Either, both, or neither may exist. When disabled or unconfigured, the existing host AI implementer flow is used. See `./coding-dispatch.md` for the full routing logic and `skills/requesting-code-review/config-loading.md` for how the two configs are loaded and merged.
+**Coding dispatch:** Before dispatching the host AI implementer, the system can route implementation tasks to an external AI coding provider based on task category (frontend, backend, etc.). Configuration is layered: an optional user global config at `${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json` provides defaults, and an optional project config at `.superpowers/review-config.json` overrides per-project. Either, both, or neither may exist. When disabled or unconfigured, the existing host AI implementer flow is used. See `./coding-dispatch.md` for the full routing logic and `skills/requesting-code-review/config-loading.md` for how the two configs are loaded and merged.
 
 **Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
 
@@ -232,7 +232,7 @@ You: I'm using Subagent-Driven Development to execute this plan.
 
 [Step 0: Check for review-config.json]
 [ls -la .superpowers/review-config.json "${XDG_CONFIG_HOME:-$HOME/.config}/superpowers/review-config.json" 2>/dev/null]
-[Found ~/.config/superpowers/review-config.json: review_provider=codex, coding.rules: backend→codex]
+[Found $HOME/.config/superpowers/review-config.json: review_provider=codex, coding.rules: backend→codex]
 
 [Load dispatch logic — once per session:]
 [Read ./coding-dispatch.md]
